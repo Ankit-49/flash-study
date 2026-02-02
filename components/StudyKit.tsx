@@ -102,9 +102,11 @@ function SectionCard({ section, delay }: { section: Section, delay: number }) {
                                 {section.content}
                             </pre>
                         ) : (
-                            <ReactMarkdown className="prose dark:prose-invert max-w-none text-sm group-data-[title='Practice Questions']:font-medium prose-p:my-2 prose-ul:my-2 prose-li:my-0">
-                                {section.content}
-                            </ReactMarkdown>
+                            <div className="prose dark:prose-invert max-w-none text-sm group-data-[title='Practice Questions']:font-medium prose-p:my-2 prose-ul:my-2 prose-li:my-0">
+                                <ReactMarkdown>
+                                    {section.content}
+                                </ReactMarkdown>
+                            </div>
                         )}
                     </div>
                 </div>
