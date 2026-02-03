@@ -1,49 +1,67 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Copy, Check, ChevronDown, ChevronRight, BookOpen, Brain, HelpCircle, Network } from 'lucide-react';
+import { useState } from 'react';
+import { Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle, Network, Trophy, XCircle, CheckCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
+interface QuizQuestion {
+    question: string;
+    options: string[];
+    correctOptionIndex: number;
+}
+
+export interface StudyKitData {
+    summary: string;
+    analogies: string[];
+    quiz: QuizQuestion[];
+    mindMap: string;
+}
+
 interface StudyKitProps {
-    content: string;
+    data: StudyKitData;
 }
 
 interface Section {
     title: string;
     icon: React.ReactNode;
-    content: string;
+    content: React.ReactNode;
 }
 
-export default function StudyKit({ content }: StudyKitProps) {
-    const [sections, setSections] = useState<Section[]>([]);
+export default function StudyKit({ data }: StudyKitProps) {
+    if (!data) return null;
 
-    useEffect(() => {
-        const parseContent = () => {
-            const parsed: Section[] = [];
-
-            // Regex to split by the prompt's numeric headers
-            const summaryMatch = content.match(/1\. SUMMARY:\s*([\s\S]*?)(?=2\. ANALOGIES:|$)/i);
-            const analogiesMatch = content.match(/2\. ANALOGIES:\s*([\s\S]*?)(?=3\. QUIZ:|$)/i);
-            const quizMatch = content.match(/3\. QUIZ:\s*([\s\S]*?)(?=4\. MIND MAP:|$)/i);
-            const mindMapMatch = content.match(/4\. MIND MAP:\s*([\s\S]*?)$/i);
-
-            if (summaryMatch) parsed.push({ title: 'Summary', icon: <BookOpen className="w-5 h-5 text-blue-500" />, content: summaryMatch[1].trim() });
-            if (analogiesMatch) parsed.push({ title: 'Analogies', icon: <Brain className="w-5 h-5 text-purple-500" />, content: analogiesMatch[1].trim() });
-            if (quizMatch) parsed.push({ title: 'Practice Questions', icon: <HelpCircle className="w-5 h-5 text-orange-500" />, content: quizMatch[1].trim() });
-            if (mindMapMatch) parsed.push({ title: 'Mind Map', icon: <Network className="w-5 h-5 text-green-500" />, content: mindMapMatch[1].trim() });
-
-            // Fallback
-            if (parsed.length === 0 && content) {
-                parsed.push({ title: 'Study Notes', icon: <BookOpen className="w-5 h-5" />, content });
-            }
-
-            setSections(parsed);
-        };
-
-        if (content) parseContent();
-    }, [content]);
-
-    if (!content) return null;
+    const sections: Section[] = [
+        {
+            title: 'Summary',
+            icon: <BookOpen className="w-5 h-5 text-blue-500" />,
+            content: <div className="prose dark:prose-invert"><ReactMarkdown>{data.summary}</ReactMarkdown></div>
+        },
+        {
+            title: 'Analogies',
+            icon: <Brain className="w-5 h-5 text-purple-500" />,
+            content: (
+                <ul className="list-disc pl-5 space-y-2">
+                    {data.analogies.map((analogy, i) => (
+                        <li key={i} className="text-slate-700 dark:text-slate-300">{analogy}</li>
+                    ))}
+                </ul>
+            )
+        },
+        {
+            title: 'Practice Questions',
+            icon: <HelpCircle className="w-5 h-5 text-orange-500" />,
+            content: <QuizComponent questions={data.quiz} />
+        },
+        {
+            title: 'Mind Map',
+            icon: <Network className="w-5 h-5 text-green-500" />,
+            content: (
+                <pre className="font-mono text-sm overflow-x-auto whitespace-pre p-4 bg-slate-50 dark:bg-slate-950 rounded-lg text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
+                    {data.mindMap}
+                </pre>
+            )
+        }
+    ];
 
     return (
         <div className="w-full max-w-3xl space-y-4 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -55,14 +73,7 @@ export default function StudyKit({ content }: StudyKitProps) {
 }
 
 function SectionCard({ section, delay }: { section: Section, delay: number }) {
-    const [copied, setCopied] = useState(false);
     const [isOpen, setIsOpen] = useState(true);
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(section.content);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
 
     return (
         <div
@@ -82,33 +93,100 @@ function SectionCard({ section, delay }: { section: Section, delay: number }) {
                         <span>{section.title}</span>
                     </div>
                 </div>
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopy();
-                    }}
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500"
-                    title="Copy section"
-                >
-                    {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                </button>
             </div>
 
             {isOpen && (
-                <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800/50 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 leading-relaxed">
-                    <div className="mt-4">
-                        {section.title === 'Mind Map' ? (
-                            <pre className="font-mono text-sm overflow-x-auto whitespace-pre p-4 bg-slate-50 dark:bg-slate-950 rounded-lg text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
-                                {section.content}
-                            </pre>
-                        ) : (
-                            <div className="prose dark:prose-invert max-w-none text-sm group-data-[title='Practice Questions']:font-medium prose-p:my-2 prose-ul:my-2 prose-li:my-0">
-                                <ReactMarkdown>
-                                    {section.content}
-                                </ReactMarkdown>
-                            </div>
-                        )}
+                <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800/50 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 leading-relaxed mt-4">
+                    {section.content}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function QuizComponent({ questions }: { questions: QuizQuestion[] }) {
+    const [selections, setSelections] = useState<Record<number, number>>({});
+    const [submitted, setSubmitted] = useState(false);
+    const [score, setScore] = useState(0);
+
+    const handleSelect = (qIdx: number, oIdx: number) => {
+        if (submitted) return;
+        setSelections(prev => ({ ...prev, [qIdx]: oIdx }));
+    };
+
+    const handleSubmit = () => {
+        let newScore = 0;
+        questions.forEach((q, idx) => {
+            if (selections[idx] === q.correctOptionIndex) newScore++;
+        });
+        setScore(newScore);
+        setSubmitted(true);
+    };
+
+    const handleRetry = () => {
+        setSelections({});
+        setSubmitted(false);
+        setScore(0);
+    };
+
+    return (
+        <div className="space-y-6">
+            {questions.map((q, qIdx) => (
+                <div key={qIdx} className="space-y-3">
+                    <p className="font-medium text-slate-800 dark:text-slate-100">{qIdx + 1}. {q.question}</p>
+                    <div className="space-y-2">
+                        {q.options.map((option, oIdx) => {
+                            const isSelected = selections[qIdx] === oIdx;
+                            const isCorrect = q.correctOptionIndex === oIdx;
+                            let btnClass = "w-full text-left p-3 rounded-lg border text-sm transition-all ";
+
+                            if (submitted) {
+                                if (isCorrect) btnClass += "bg-green-100 border-green-500 text-green-700 dark:bg-green-900/30 dark:text-green-300 ";
+                                else if (isSelected) btnClass += "bg-red-100 border-red-500 text-red-700 dark:bg-red-900/30 dark:text-red-300 ";
+                                else btnClass += "border-slate-200 dark:border-slate-700 opacity-60 ";
+                            } else {
+                                if (isSelected) btnClass += "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 ";
+                                else btnClass += "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 ";
+                            }
+
+                            return (
+                                <button
+                                    key={oIdx}
+                                    onClick={() => handleSelect(qIdx, oIdx)}
+                                    className={btnClass}
+                                    disabled={submitted}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span>{option}</span>
+                                        {submitted && isCorrect && <CheckCircle className="w-4 h-4 text-green-600" />}
+                                        {submitted && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-600" />}
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
+                </div>
+            ))}
+
+            {!submitted ? (
+                <button
+                    onClick={handleSubmit}
+                    disabled={Object.keys(selections).length !== questions.length}
+                    className="w-full py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Submit Answers
+                </button>
+            ) : (
+                <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-800 p-4 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <Trophy className="w-5 h-5 text-yellow-500" />
+                        <span className="font-bold text-slate-700 dark:text-slate-200">
+                            Score: {score} / {questions.length}
+                        </span>
+                    </div>
+                    <button onClick={handleRetry} className="text-sm text-indigo-600 hover:underline">
+                        Try Again
+                    </button>
                 </div>
             )}
         </div>

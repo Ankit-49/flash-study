@@ -2,14 +2,31 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const systemPrompt = `You are a world-class teacher specializing in concept simplification.
-For the provided text, generate ONLY these 4 sections:
+For the provided text, generate a valid JSON object with the following structure:
+{
+  "summary": "One paragraph explaining the core concept in simple terms.",
+  "analogies": ["Analogy 1", "Analogy 2"],
+  "quiz": [
+    { 
+      "question": "Question text", 
+      "options": ["Option A", "Option B", "Option C", "Option D"], 
+      "correctOptionIndex": 0 
+    },
+    { 
+        "question": "Question text", 
+        "options": ["Option A", "Option B", "Option C", "Option D"], 
+        "correctOptionIndex": 1
+    },
+    { 
+        "question": "Question text", 
+        "options": ["Option A", "Option B", "Option C", "Option D"], 
+        "correctOptionIndex": 2
+    }
+  ],
+  "mindMap": "A clear, text-based hierarchy showing main concepts and relationships."
+}
 
-1. SUMMARY: One paragraph explaining the core concept in simple terms.
-2. ANALOGIES: Two real-world analogies that make this concept relatable.
-3. QUIZ: Three multiple-choice questions testing understanding (mark correct answer with ✓).
-4. MIND MAP: A text-based hierarchy showing main concepts and relationships.
-
-Format output clearly with headers.`;
+Ensure the output is strictly valid JSON. Do not include markdown code blocks.`;
 
 export async function POST(request: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -33,17 +50,22 @@ export async function POST(request: Request) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            generationConfig: { responseMimeType: "application/json" }
+        });
 
         const prompt = `${systemPrompt}\n\nContent to analyze:\n${text}`;
 
         console.log('Generating content with Gemini...');
         const result = await model.generateContent(prompt);
         const response = await result.response;
-        const output = response.text();
+        const outputText = response.text();
         console.log('Generation successful');
 
-        return NextResponse.json({ result: output });
+        const jsonOutput = JSON.parse(outputText);
+
+        return NextResponse.json({ result: jsonOutput });
 
     } catch (error: any) {
         console.error('AI Generation Error Details:', error);

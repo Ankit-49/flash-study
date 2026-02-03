@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { Sparkles, Loader2, Zap } from 'lucide-react';
-import StudyKit from '@/components/StudyKit';
+import StudyKit, { StudyKitData } from '@/components/StudyKit';
 
 export default function Home() {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<StudyKitData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
@@ -99,7 +99,7 @@ export default function Home() {
       </div>
 
       {/* Results Section */}
-      {result && <StudyKit content={result} />}
+      {result && <StudyKit data={result} />}
 
       {/* Footer */}
       {!result && (
