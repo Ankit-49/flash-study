@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
 const systemPrompt = `You are a world-class teacher specializing in concept simplification.
 For the provided text, generate ONLY these 4 sections:
 
@@ -15,7 +12,10 @@ For the provided text, generate ONLY these 4 sections:
 Format output clearly with headers.`;
 
 export async function POST(request: Request) {
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+        console.error('Gemini API Error: GEMINI_API_KEY is missing');
         return NextResponse.json(
             { error: 'Gemini API key not configured' },
             { status: 500 }
@@ -32,18 +32,26 @@ export async function POST(request: Request) {
             );
         }
 
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
         const prompt = `${systemPrompt}\n\nContent to analyze:\n${text}`;
 
+        console.log('Generating content with Gemini...');
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const output = response.text();
+        console.log('Generation successful');
 
         return NextResponse.json({ result: output });
 
-    } catch (error) {
-        console.error('AI Generation Error:', error);
+    } catch (error: any) {
+        console.error('AI Generation Error Details:', error);
+        console.error('Error Message:', error.message);
+
+        // Return more specific error in dev mode or catch specific issues
         return NextResponse.json(
-            { error: 'Failed to generate study kit. Please try again.' },
+            { error: `Failed to generate study kit: ${error.message || 'Unknown error'}` },
             { status: 500 }
         );
     }
