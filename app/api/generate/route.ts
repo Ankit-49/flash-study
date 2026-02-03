@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || 'dummy',
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 const systemPrompt = `You are a world-class teacher specializing in concept simplification.
 For the provided text, generate ONLY these 4 sections:
@@ -16,9 +15,9 @@ For the provided text, generate ONLY these 4 sections:
 Format output clearly with headers.`;
 
 export async function POST(request: Request) {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
         return NextResponse.json(
-            { error: 'OpenAI API key not configured' },
+            { error: 'Gemini API key not configured' },
             { status: 500 }
         );
     }
@@ -33,17 +32,13 @@ export async function POST(request: Request) {
             );
         }
 
-        const completion = await openai.chat.completions.create({
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: text },
-            ],
-            model: "gpt-4-turbo",
-        });
+        const prompt = `${systemPrompt}\n\nContent to analyze:\n${text}`;
 
-        const result = completion.choices[0].message.content;
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const output = response.text();
 
-        return NextResponse.json({ result });
+        return NextResponse.json({ result: output });
 
     } catch (error) {
         console.error('AI Generation Error:', error);
