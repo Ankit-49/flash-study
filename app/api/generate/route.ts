@@ -23,7 +23,7 @@ For the provided text, generate a valid JSON object with the following structure
         "correctOptionIndex": 2
     }
   ],
-  "mindMap": "A clear, text-based hierarchy showing main concepts and relationships."
+  "mindMap": "A hierarchical mind map using Markdown bullet points (e.g., - Main Concept\n  - Subconcept). Use LaTeX for math equations where appropriate (e.g., $E=mc^2$)."
 }
 
 Ensure the output is strictly valid JSON. Do not include markdown code blocks.`;

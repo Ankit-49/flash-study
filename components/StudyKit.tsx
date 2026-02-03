@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle, Network, Trophy, XCircle, CheckCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 interface QuizQuestion {
     question: string;
@@ -30,11 +33,26 @@ interface Section {
 export default function StudyKit({ data }: StudyKitProps) {
     if (!data) return null;
 
+    const markdownComponents = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        p: ({ node, ...props }: any) => <p className="mb-2" {...props} />,
+    };
+
     const sections: Section[] = [
         {
             title: 'Summary',
             icon: <BookOpen className="w-5 h-5 text-blue-500" />,
-            content: <div className="prose dark:prose-invert"><ReactMarkdown>{data.summary}</ReactMarkdown></div>
+            content: (
+                <div className="prose dark:prose-invert max-w-none">
+                    <ReactMarkdown
+                        remarkPlugins={[remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                        components={markdownComponents}
+                    >
+                        {data.summary}
+                    </ReactMarkdown>
+                </div>
+            )
         },
         {
             title: 'Analogies',
@@ -42,7 +60,14 @@ export default function StudyKit({ data }: StudyKitProps) {
             content: (
                 <ul className="list-disc pl-5 space-y-2">
                     {data.analogies.map((analogy, i) => (
-                        <li key={i} className="text-slate-700 dark:text-slate-300">{analogy}</li>
+                        <li key={i} className="text-slate-700 dark:text-slate-300">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkMath]}
+                                rehypePlugins={[rehypeKatex]}
+                            >
+                                {analogy}
+                            </ReactMarkdown>
+                        </li>
                     ))}
                 </ul>
             )
@@ -56,9 +81,14 @@ export default function StudyKit({ data }: StudyKitProps) {
             title: 'Mind Map',
             icon: <Network className="w-5 h-5 text-green-500" />,
             content: (
-                <pre className="font-mono text-sm overflow-x-auto whitespace-pre p-4 bg-slate-50 dark:bg-slate-950 rounded-lg text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
-                    {data.mindMap}
-                </pre>
+                <div className="prose dark:prose-invert max-w-none p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 text-sm">
+                    <ReactMarkdown
+                        remarkPlugins={[remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                    >
+                        {data.mindMap}
+                    </ReactMarkdown>
+                </div>
             )
         }
     ];
