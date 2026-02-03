@@ -29,10 +29,10 @@ For the provided text, generate a valid JSON object with the following structure
 CRITICAL INSTRUCTION FOR MATH AND JSON:
 - You MUST use LaTeX for all formulas.
 - Because this is a JSON response, you MUST escape all backslashes in LaTeX.
-- Example: Write `\\\\frac{ a }{ b }` (double backslash) to produce `\\frac{ a } { b } ` in the string, which renders as a fraction.
-- Example: Write `$E = mc ^ 2$` for inline math.
-- Example: Write `$$...$$` for block math.
-- DO NOT output plain text formulas like 'epsilon0'. Use `$\\\\epsilon_0$`.
+- Example: Write '\\\\frac{ a }{ b }' (double backslash) to produce '\\frac{ a } { b } ' in the string, which renders as a fraction.
+- Example: Write '$E = mc ^ 2$' for inline math.
+- Example: Write '$$...$$' for block math.
+- DO NOT output plain text formulas like 'epsilon0'. Use '$\\\\epsilon_0$'.
 - Ensure the output is strictly valid JSON. Do not include markdown code blocks.`;
 
 export async function POST(request: Request) {
