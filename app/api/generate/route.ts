@@ -47,11 +47,39 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { text } = await request.json();
+        let text = '';
 
-        if (!text || text.length < 10) {
+        const contentType = request.headers.get('content-type') || '';
+
+        if (contentType.includes('multipart/form-data')) {
+            const formData = await request.formData();
+            const file = formData.get('file') as File | null;
+            const plainText = formData.get('text') as string | null;
+
+            if (file) {
+                console.log(`Processing file: ${file.name} (${file.type})`);
+                const arrayBuffer = await file.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+
+                if (file.type === 'application/pdf') {
+                    const pdfParse = (await import('pdf-parse')).default;
+                    const pdfData = await pdfParse(buffer);
+                    text = pdfData.text;
+                } else {
+                    // Assume text-based file (txt, md, js, etc.)
+                    text = buffer.toString('utf-8');
+                }
+            } else if (plainText) {
+                text = plainText;
+            }
+        } else {
+            const json = await request.json();
+            text = json.text;
+        }
+
+        if (!text || text.length < 50) {
             return NextResponse.json(
-                { error: 'Please enter some text to analyze.' },
+                { error: 'Please provide at least 50 characters of content or a valid file.' },
                 { status: 400 }
             );
         }
@@ -62,7 +90,14 @@ export async function POST(request: Request) {
             generationConfig: { responseMimeType: "application/json" }
         });
 
-        const prompt = `${systemPrompt} \n\nContent to analyze: \n${text} `;
+        // Truncate text if it's too long (Gemini Flash has a large context window, but let's be safe)
+        const maxLength = 100000;
+        if (text.length > maxLength) {
+            console.log(`Truncating input text from ${text.length} to ${maxLength} chars`);
+            text = text.substring(0, maxLength);
+        }
+
+        const prompt = `${systemPrompt}\n\nContent to analyze:\n${text}`;
 
         console.log('Generating content with Gemini...');
         const result = await model.generateContent(prompt);
@@ -80,7 +115,7 @@ export async function POST(request: Request) {
 
         // Return more specific error in dev mode or catch specific issues
         return NextResponse.json(
-            { error: `Failed to generate study kit: ${error.message || 'Unknown error'} ` },
+            { error: `Failed to generate study kit: ${error.message || 'Unknown error'}` },
             { status: 500 }
         );
     }
