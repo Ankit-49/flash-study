@@ -163,7 +163,21 @@ function QuizComponent({ questions }: { questions: QuizQuestion[] }) {
         <div className="space-y-6">
             {questions.map((q, qIdx) => (
                 <div key={qIdx} className="space-y-3">
-                    <p className="font-medium text-slate-800 dark:text-slate-100">{qIdx + 1}. {q.question}</p>
+                    <div className="font-medium text-slate-800 dark:text-slate-100 flex gap-2">
+                        <span>{qIdx + 1}.</span>
+                        <div className="prose dark:prose-invert max-w-none inline-block">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkMath]}
+                                rehypePlugins={[rehypeKatex]}
+                                components={{
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    p: ({ node, ...props }: any) => <p className="m-0 inline" {...props} />
+                                }}
+                            >
+                                {q.question}
+                            </ReactMarkdown>
+                        </div>
+                    </div>
                     <div className="space-y-2">
                         {q.options.map((option, oIdx) => {
                             const isSelected = selections[qIdx] === oIdx;
@@ -186,10 +200,21 @@ function QuizComponent({ questions }: { questions: QuizQuestion[] }) {
                                     className={btnClass}
                                     disabled={submitted}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <span>{option}</span>
-                                        {submitted && isCorrect && <CheckCircle className="w-4 h-4 text-green-600" />}
-                                        {submitted && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-600" />}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="prose dark:prose-invert max-w-none text-sm text-left">
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkMath]}
+                                                rehypePlugins={[rehypeKatex]}
+                                                components={{
+                                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                    p: ({ node, ...props }: any) => <p className="m-0 inline" {...props} />
+                                                }}
+                                            >
+                                                {option}
+                                            </ReactMarkdown>
+                                        </div>
+                                        {submitted && isCorrect && <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />}
+                                        {submitted && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-600 flex-shrink-0" />}
                                     </div>
                                 </button>
                             );
