@@ -56,22 +56,66 @@ export async function POST(request: Request) {
             const file = formData.get('file') as File | null;
             const plainText = formData.get('text') as string | null;
 
+            let combinedText = '';
+
+            if (plainText) {
+                combinedText += plainText;
+            }
+
             if (file) {
                 console.log(`Processing file: ${file.name} (${file.type})`);
-                const arrayBuffer = await file.arrayBuffer();
-                const buffer = Buffer.from(arrayBuffer);
+                const buffer = Buffer.from(await file.arrayBuffer());
+                let fileText = '';
 
                 if (file.type === 'application/pdf') {
-                    const pdfParse = (await import('pdf-parse')).default;
-                    const pdfData = await pdfParse(buffer);
-                    text = pdfData.text;
+                    // Use createRequire to bypass ESM/CJS interop issues with pdf-parse
+                    const { createRequire } = await import('module');
+                    const require = createRequire(import.meta.url);
+
+                    // Polyfill DOMMatrix, Path2D, etc. for pdfjs-dist@5 (used by pdf-parse)
+                    const canvas = require('@napi-rs/canvas');
+                    if (typeof global !== 'undefined') {
+                        (global as any).DOMMatrix = canvas.DOMMatrix;
+                        (global as any).Path2D = canvas.Path2D;
+                        (global as any).DOMPoint = canvas.DOMPoint;
+                    }
+
+                    let pdfParse = require('pdf-parse');
+
+                    if (typeof pdfParse !== 'function' && typeof pdfParse.default === 'function') {
+                        pdfParse = pdfParse.default;
+                    }
+
+                    if (typeof pdfParse === 'function') {
+                        // Legacy function-based API or correctly resolved default export
+                        const pdfData = await pdfParse(buffer);
+                        fileText = pdfData.text;
+                    } else if (typeof pdfParse === 'object' && pdfParse.PDFParse) {
+                        // New class-based API in version 2.4.5+
+                        const parser = new pdfParse.PDFParse({ data: buffer });
+                        const result = await parser.getText();
+                        fileText = result.text;
+                    } else {
+                        console.error('pdf-parse export type:', typeof pdfParse);
+                        console.error('pdf-parse export keys:', Object.keys(pdfParse || {}));
+                        throw new Error(`pdf-parse library parsing failed: exported value is not a function or compatible class (type: ${typeof pdfParse})`);
+                    }
                 } else {
                     // Assume text-based file (txt, md, js, etc.)
-                    text = buffer.toString('utf-8');
+                    fileText = buffer.toString('utf-8');
                 }
-            } else if (plainText) {
-                text = plainText;
+
+                if (combinedText) {
+                    combinedText += '\n\n--- ADDITIONAL CONTENT FROM UPLOADED FILE ---\n\n';
+                }
+                combinedText += fileText;
             }
+
+            if (!combinedText.trim()) {
+                return NextResponse.json({ error: 'No content found to analyze' }, { status: 400 });
+            }
+
+            text = combinedText;
         } else {
             const json = await request.json();
             text = json.text;
