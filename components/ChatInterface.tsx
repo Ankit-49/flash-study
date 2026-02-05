@@ -10,13 +10,14 @@ interface Message {
 
 interface ChatInterfaceProps {
     context: string;
+    isOpen: boolean;
+    onToggle: (isOpen: boolean) => void;
 }
 
-export default function ChatInterface({ context }: ChatInterfaceProps) {
+export default function ChatInterface({ context, isOpen, onToggle }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [isOpen, setIsOpen] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -112,8 +113,8 @@ export default function ChatInterface({ context }: ChatInterfaceProps) {
                                         {msg.role === 'user' ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
                                     </div>
                                     <div className={`p-3 rounded-2xl text-[13px] leading-relaxed shadow-sm ${msg.role === 'user'
-                                            ? 'bg-indigo-600 text-white rounded-tr-none'
-                                            : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none border border-slate-200 dark:border-slate-700'
+                                        ? 'bg-indigo-600 text-white rounded-tr-none'
+                                        : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none border border-slate-200 dark:border-slate-700'
                                         }`}>
                                         {msg.content}
                                     </div>
@@ -162,7 +163,7 @@ export default function ChatInterface({ context }: ChatInterfaceProps) {
 
             {/* Floating Action Button */}
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => onToggle(!isOpen)}
                 className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 group ${isOpen ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rotate-90' : 'bg-indigo-600 text-white'
                     }`}
             >
