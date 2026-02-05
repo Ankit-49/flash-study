@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Sparkles, Loader2, Zap, Upload, FileText } from 'lucide-react';
 import StudyKit, { StudyKitData } from '@/components/StudyKit';
+import ChatInterface from '@/components/ChatInterface';
 
 export default function Home() {
   const [text, setText] = useState('');
@@ -10,6 +11,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<StudyKitData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [context, setContext] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,6 +54,9 @@ export default function Home() {
       }
 
       setResult(data.result);
+      if (data.context) {
+        setContext(data.context);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to generate Study Kit');
     } finally {
@@ -165,6 +170,7 @@ export default function Home() {
         </button>
 
         {result && <StudyKit data={result} />}
+        {context && <ChatInterface context={context} />}
       </div>
     </main>
   );

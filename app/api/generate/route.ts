@@ -151,7 +151,10 @@ export async function POST(request: Request) {
 
         const jsonOutput = JSON.parse(outputText);
 
-        return NextResponse.json({ result: jsonOutput });
+        return NextResponse.json({
+            result: jsonOutput,
+            context: text
+        });
 
     } catch (error: any) {
         console.error('AI Generation Error Details:', error);
