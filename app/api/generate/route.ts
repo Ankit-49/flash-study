@@ -37,6 +37,7 @@ CRITICAL INSTRUCTION FOR MATH AND JSON:
 
 export async function POST(request: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
+    console.log(`--- GENERATE API CALL [v5] --- API Key Length: ${apiKey?.length || 0}`);
 
     if (!apiKey) {
         console.error('Gemini API Error: GEMINI_API_KEY is missing');
@@ -129,10 +130,9 @@ export async function POST(request: Request) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
-            generationConfig: { responseMimeType: "application/json" }
-        });
+        const modelsToTry = ["gemini-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-pro-latest"];
+        let result;
+        let lastError;
 
         // Truncate text if it's too long (Gemini Flash has a large context window, but let's be safe)
         const maxLength = 100000;
@@ -144,17 +144,76 @@ export async function POST(request: Request) {
         const prompt = `${systemPrompt}\n\nContent to analyze:\n${text}`;
 
         console.log('Generating content with Gemini...');
-        const result = await model.generateContent(prompt);
+
+        for (const modelName of modelsToTry) {
+            try {
+                console.log(`Attempting with model: ${modelName}`);
+                const isFlashLatest = modelName === "gemini-flash-latest";
+                const model = genAI.getGenerativeModel({
+                    model: modelName,
+                    generationConfig: {
+                        // Only use responseMimeType for models we are sure support it
+                        responseMimeType: (modelName.includes('1.5') || modelName.includes('2.') || isFlashLatest) ? "application/json" : "text/plain"
+                    }
+                });
+
+                result = await model.generateContent(prompt);
+                if (result && result.response) {
+                    console.log(`Successfully generated with model: ${modelName}`);
+                    break;
+                }
+            } catch (err: any) {
+                console.error(`Model ${modelName} failed:`, err.message);
+                lastError = err;
+            }
+        }
+
+        if (!result) {
+            throw lastError || new Error('All available Gemini models failed to generate content.');
+        }
+
         const response = await result.response;
-        const outputText = response.text();
+        let outputText = response.text();
         console.log('Generation successful');
 
-        const jsonOutput = JSON.parse(outputText);
+        // Robust JSON Extraction and Cleaning
+        try {
+            // Remove potential markdown blocks
+            outputText = outputText.replace(/```json\n?/, '').replace(/\n?```/, '').trim();
 
-        return NextResponse.json({
-            result: jsonOutput,
-            context: text
-        });
+            // Handle common AI "mistakes" in JSON (unescaped newlines in strings)
+            // This is a partial fix for "Bad control character"
+            const cleanedOutput = outputText.replace(/\n/g, ' ').replace(/\r/g, ' ');
+
+            const jsonOutput = JSON.parse(cleanedOutput);
+
+            return NextResponse.json({
+                result: jsonOutput,
+                context: text
+            });
+        } catch (parseError) {
+            console.error('Initial JSON parse failed, trying fallback extraction:', parseError);
+
+            // Fallback: try to find the first '{' and last '}'
+            const startIdx = outputText.indexOf('{');
+            const endIdx = outputText.lastIndexOf('}');
+
+            if (startIdx !== -1 && endIdx !== -1) {
+                try {
+                    const fallbackExtract = outputText.substring(startIdx, endIdx + 1)
+                        .replace(/\n/g, ' ')
+                        .replace(/\r/g, ' ');
+                    const jsonOutput = JSON.parse(fallbackExtract);
+                    return NextResponse.json({
+                        result: jsonOutput,
+                        context: text
+                    });
+                } catch (e) {
+                    throw new Error('Failed to parse AI response as JSON even with fallback extraction.');
+                }
+            }
+            throw parseError;
+        }
 
     } catch (error: any) {
         console.error('AI Generation Error Details:', error);

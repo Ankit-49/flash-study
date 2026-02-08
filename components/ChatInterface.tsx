@@ -77,7 +77,7 @@ export default function ChatInterface({ context, isOpen, onToggle }: ChatInterfa
                             </div>
                         </div>
                         <button
-                            onClick={() => setIsOpen(false)}
+                            onClick={() => onToggle(false)}
                             className="text-white hover:bg-white/10 p-1 rounded-lg transition-colors"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

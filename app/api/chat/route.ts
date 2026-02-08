@@ -1,15 +1,16 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 
-const apiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey || '');
-
 export async function POST(request: Request) {
-    if (!apiKey) {
-        return NextResponse.json({ error: 'Gemini API Key not configured' }, { status: 500 });
-    }
-
     try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        console.log(`--- CHAT API CALL [v6] --- API Key Length: ${apiKey?.length || 0}`);
+
+        if (!apiKey) {
+            return NextResponse.json({ error: 'Gemini API Key not configured' }, { status: 500 });
+        }
+
+        const genAI = new GoogleGenerativeAI(apiKey);
         const { message, chatHistory, context } = await request.json();
 
         if (!message) {
@@ -17,26 +18,28 @@ export async function POST(request: Request) {
         }
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            systemInstruction: `You are a helpful study assistant. Your goal is to answer questions based ONLY on the provided context (notes and uploaded documents). 
-            If the answer is not in the context, politely say that you don't know based on the provided material, but offer to help with something else.
-            Keep your answers concise and well-structured.
-            
-            CONTEXT:
-            ${context}`
+            model: "gemini-flash-latest",
         });
 
-        // Convert chat history to Gemini format
-        const history = chatHistory.map((msg: any) => ({
-            role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.content }],
-        }));
+        const fullContext = `You are a helpful study assistant. Your goal is to answer questions based ONLY on the provided context (notes and uploaded documents). 
+        If the answer is not in the context, politely say that you don't know based on the provided material, but offer to help with something else.
+        Keep your answers concise and well-structured.
+        
+        CONTEXT:
+        ${context}`;
 
-        const chat = model.startChat({
-            history,
+        // Manual prompt engineering for context and history
+        let fullPrompt = `${fullContext}\n\n`;
+
+        // Add history
+        chatHistory.forEach((msg: any) => {
+            fullPrompt += `${msg.role === 'user' ? 'USER' : 'ASSISTANT'}: ${msg.content}\n`;
         });
 
-        const result = await chat.sendMessage(message);
+        // Add current message
+        fullPrompt += `USER: ${message}\nASSISTANT:`;
+
+        const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         const text = response.text();
 
