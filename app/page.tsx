@@ -121,7 +121,7 @@ export default function Home() {
               <div className="relative">
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className={`w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all ${file ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/10' : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 bg-white dark:bg-slate-900/80 backdrop-blur-sm shadow-xl'}`}
+                  className={`w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all ${files.length > 0 ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/10' : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 bg-white dark:bg-slate-900/80 backdrop-blur-sm shadow-xl'}`}
                 >
                   <input
                     type="file"
