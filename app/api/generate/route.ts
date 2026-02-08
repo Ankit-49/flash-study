@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
         if (contentType.includes('multipart/form-data')) {
             const formData = await request.formData();
-            const file = formData.get('file') as File | null;
+            const files = formData.getAll('file') as File[];
             const plainText = formData.get('text') as string | null;
 
             let combinedText = '';
@@ -63,53 +63,55 @@ export async function POST(request: Request) {
                 combinedText += plainText;
             }
 
-            if (file) {
-                console.log(`Processing file: ${file.name} (${file.type})`);
-                const buffer = Buffer.from(await file.arrayBuffer());
-                let fileText = '';
+            for (const file of files) {
+                if (file) {
+                    console.log(`Processing file: ${file.name} (${file.type})`);
+                    const buffer = Buffer.from(await file.arrayBuffer());
+                    let fileText = '';
 
-                if (file.type === 'application/pdf') {
-                    // Use createRequire to bypass ESM/CJS interop issues with pdf-parse
-                    const { createRequire } = await import('module');
-                    const require = createRequire(import.meta.url);
+                    if (file.type === 'application/pdf') {
+                        // Use createRequire to bypass ESM/CJS interop issues with pdf-parse
+                        const { createRequire } = await import('module');
+                        const require = createRequire(import.meta.url);
 
-                    // Polyfill DOMMatrix, Path2D, etc. for pdfjs-dist@5 (used by pdf-parse)
-                    const canvas = require('@napi-rs/canvas');
-                    if (typeof global !== 'undefined') {
-                        (global as any).DOMMatrix = canvas.DOMMatrix;
-                        (global as any).Path2D = canvas.Path2D;
-                        (global as any).DOMPoint = canvas.DOMPoint;
-                    }
+                        // Polyfill DOMMatrix, Path2D, etc. for pdfjs-dist@5 (used by pdf-parse)
+                        const canvas = require('@napi-rs/canvas');
+                        if (typeof global !== 'undefined') {
+                            (global as any).DOMMatrix = canvas.DOMMatrix;
+                            (global as any).Path2D = canvas.Path2D;
+                            (global as any).DOMPoint = canvas.DOMPoint;
+                        }
 
-                    let pdfParse = require('pdf-parse');
+                        let pdfParse = require('pdf-parse');
 
-                    if (typeof pdfParse !== 'function' && typeof pdfParse.default === 'function') {
-                        pdfParse = pdfParse.default;
-                    }
+                        if (typeof pdfParse !== 'function' && typeof pdfParse.default === 'function') {
+                            pdfParse = pdfParse.default;
+                        }
 
-                    if (typeof pdfParse === 'function') {
-                        // Legacy function-based API or correctly resolved default export
-                        const pdfData = await pdfParse(buffer);
-                        fileText = pdfData.text;
-                    } else if (typeof pdfParse === 'object' && pdfParse.PDFParse) {
-                        // New class-based API in version 2.4.5+
-                        const parser = new pdfParse.PDFParse({ data: buffer });
-                        const result = await parser.getText();
-                        fileText = result.text;
+                        if (typeof pdfParse === 'function') {
+                            // Legacy function-based API or correctly resolved default export
+                            const pdfData = await pdfParse(buffer);
+                            fileText = pdfData.text;
+                        } else if (typeof pdfParse === 'object' && pdfParse.PDFParse) {
+                            // New class-based API in version 2.4.5+
+                            const parser = new pdfParse.PDFParse({ data: buffer });
+                            const result = await parser.getText();
+                            fileText = result.text;
+                        } else {
+                            console.error('pdf-parse export type:', typeof pdfParse);
+                            console.error('pdf-parse export keys:', Object.keys(pdfParse || {}));
+                            throw new Error(`pdf-parse library parsing failed: exported value is not a function or compatible class (type: ${typeof pdfParse})`);
+                        }
                     } else {
-                        console.error('pdf-parse export type:', typeof pdfParse);
-                        console.error('pdf-parse export keys:', Object.keys(pdfParse || {}));
-                        throw new Error(`pdf-parse library parsing failed: exported value is not a function or compatible class (type: ${typeof pdfParse})`);
+                        // Assume text-based file (txt, md, js, etc.)
+                        fileText = buffer.toString('utf-8');
                     }
-                } else {
-                    // Assume text-based file (txt, md, js, etc.)
-                    fileText = buffer.toString('utf-8');
-                }
 
-                if (combinedText) {
-                    combinedText += '\n\n--- ADDITIONAL CONTENT FROM UPLOADED FILE ---\n\n';
+                    if (combinedText) {
+                        combinedText += `\n\n--- ADDITIONAL CONTENT FROM UPLOADED FILE: ${file.name} ---\n\n`;
+                    }
+                    combinedText += fileText;
                 }
-                combinedText += fileText;
             }
 
             if (!combinedText.trim()) {

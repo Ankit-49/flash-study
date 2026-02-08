@@ -7,7 +7,7 @@ import ChatInterface from '@/components/ChatInterface';
 
 export default function Home() {
   const [text, setText] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<StudyKitData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -16,22 +16,28 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFiles((prev) => [...prev, ...newFiles]);
     }
   };
 
-  const clearFile = () => {
-    setFile(null);
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const clearFiles = () => {
+    setFiles([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleGenerate = async () => {
     const hasEnoughText = text && text.trim().length >= 50;
-    const hasFile = !!file;
+    const hasFiles = files.length > 0;
 
-    if (!hasEnoughText && !hasFile) {
-      setError('Please enter at least 50 characters of text or upload a file.');
+    if (!hasEnoughText && !hasFiles) {
+      setError('Please enter at least 50 characters of text or upload at least one file.');
       return;
     }
 
@@ -42,7 +48,9 @@ export default function Home() {
     try {
       const formData = new FormData();
       if (text) formData.append('text', text);
-      if (file) formData.append('file', file);
+      files.forEach((file) => {
+        formData.append('file', file);
+      });
 
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -121,25 +129,57 @@ export default function Home() {
                     onChange={handleFileChange}
                     className="hidden"
                     accept=".txt,.md,.pdf"
+                    multiple
                   />
 
-                  {file ? (
-                    <div className="text-center">
-                      <FileText className="w-10 h-10 text-indigo-600 mx-auto mb-2" />
-                      <p className="font-medium text-slate-900 dark:text-white text-sm mb-1 truncate max-w-[250px]">{file.name}</p>
-                      <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); clearFile(); }}
-                        className="mt-3 px-3 py-1 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs rounded-md shadow-sm border border-slate-200 dark:border-slate-700 hover:text-red-500 hover:border-red-200"
-                      >
-                        Remove File
-                      </button>
+                  {files.length > 0 ? (
+                    <div className="w-full space-y-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          Uploaded Files ({files.length})
+                        </p>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); clearFiles(); }}
+                          className="text-xs text-red-500 hover:text-red-600 font-medium"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {files.map((file, index) => (
+                          <div
+                            key={`${file.name}-${index}`}
+                            className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm group/file"
+                          >
+                            <FileText className="w-8 h-8 text-indigo-500 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-900 dark:text-white text-xs truncate">
+                                {file.name}
+                              </p>
+                              <p className="text-[10px] text-slate-500">
+                                {(file.size / 1024).toFixed(1)} KB
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); removeFile(index); }}
+                              className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 rounded-md transition-colors"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="pt-2 text-center">
+                        <p className="text-[10px] text-slate-400">Click to add more files</p>
+                      </div>
                     </div>
                   ) : (
                     <div className="text-center space-y-2">
                       <Upload className="w-8 h-8 text-slate-400 mx-auto" />
-                      <p className="font-medium text-slate-700 dark:text-slate-200 text-sm">Add a PDF, TXT, or MD file</p>
-                      <p className="text-xs text-slate-500">Combine file content with your notes above</p>
+                      <p className="font-medium text-slate-700 dark:text-slate-200 text-sm">Add PDF, TXT, or MD files</p>
+                      <p className="text-xs text-slate-500">You can select multiple files at once</p>
                     </div>
                   )}
                 </div>
@@ -156,7 +196,7 @@ export default function Home() {
 
           <button
             onClick={handleGenerate}
-            disabled={loading || (!text && !file)}
+            disabled={loading || (!text && files.length === 0)}
             className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] flex items-center justify-center gap-2 group"
           >
             {loading ? (
