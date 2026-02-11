@@ -26,7 +26,7 @@ For the provided text, generate a valid JSON object with the following structure
         "correctOptionIndex": 2
     }
   ],
-  "mindMap": "A simple Mermaid.js graph TD diagram (e.g., graph TD\n  A[Concept] --> B[Subconcept]). Do NOT use LaTeX inside the Mermaid diagram nodes."
+  "mindMap": "A simple Mermaid.js graph LR diagram (e.g., graph LR\n  A[Concept] --> B[Subconcept]). Do NOT use LaTeX inside the Mermaid diagram nodes."
 }
 
 CRITICAL INSTRUCTION FOR MATH AND JSON:

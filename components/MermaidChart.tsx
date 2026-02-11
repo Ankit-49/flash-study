@@ -16,6 +16,11 @@ export default function MermaidChart({ chart }: MermaidChartProps) {
             theme: 'default',
             securityLevel: 'loose',
             fontFamily: 'inherit',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true,
+                curve: 'basis'
+            },
         });
 
         if (ref.current) {
@@ -28,8 +33,11 @@ export default function MermaidChart({ chart }: MermaidChartProps) {
     const cleanChart = chart.replace(/\\n/g, '\n').trim();
 
     return (
-        <div className="w-full flex justify-center py-4 overflow-x-auto bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
-            <div ref={ref} className="mermaid">
+        <div className="w-full flex justify-center py-6 overflow-x-auto bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-slate-800 scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-transparent">
+            <div
+                ref={ref}
+                className="mermaid transition-all duration-500 scale-110 origin-top min-w-[600px] flex justify-center"
+            >
                 {cleanChart}
             </div>
         </div>
