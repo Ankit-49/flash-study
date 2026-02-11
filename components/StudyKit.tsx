@@ -4,6 +4,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import Flashcards from './Flashcards';
+import MermaidChart from './MermaidChart';
 import { useRef } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -188,13 +189,8 @@ export default function StudyKit({ data }: StudyKitProps) {
             title: 'Mind Map',
             icon: <Network className="w-5 h-5 text-green-500" />,
             content: (
-                <div className="prose dark:prose-invert max-w-none p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 text-sm">
-                    <ReactMarkdown
-                        remarkPlugins={[remarkMath]}
-                        rehypePlugins={[rehypeKatex]}
-                    >
-                        {data.mindMap}
-                    </ReactMarkdown>
+                <div className="w-full">
+                    <MermaidChart chart={data.mindMap} />
                 </div>
             )
         }

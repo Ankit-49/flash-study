@@ -26,7 +26,7 @@ For the provided text, generate a valid JSON object with the following structure
         "correctOptionIndex": 2
     }
   ],
-  "mindMap": "A hierarchical mind map using Markdown bullet points (e.g., - Main Concept\n  - Subconcept). Use LaTeX for math equations where appropriate."
+  "mindMap": "A simple Mermaid.js graph TD diagram (e.g., graph TD\n  A[Concept] --> B[Subconcept]). Do NOT use LaTeX inside the Mermaid diagram nodes."
 }
 
 CRITICAL INSTRUCTION FOR MATH AND JSON:

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { Sparkles, Loader2, Zap, Upload, FileText } from 'lucide-react';
 import StudyKit, { StudyKitData } from '@/components/StudyKit';
 import ChatInterface from '@/components/ChatInterface';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Home() {
   const [text, setText] = useState('');
@@ -76,6 +77,10 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-100 via-white to-white dark:from-slate-900 dark:via-slate-950 dark:to-black transition-colors duration-500">
+      <div className="fixed top-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
+
       <main className={`flex-1 flex flex-col items-center p-6 sm:p-24 transition-all duration-500 ease-in-out ${isChatOpen ? 'lg:mr-[400px]' : ''}`}>
 
         {/* Header */}
