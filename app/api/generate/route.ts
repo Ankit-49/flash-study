@@ -26,7 +26,7 @@ For the provided text, generate a valid JSON object with the following structure
         "correctOptionIndex": 2
     }
   ],
-  "mindMap": "A simple Mermaid.js graph LR diagram (e.g., graph LR\n  A[Concept] --> B[Subconcept]). Do NOT use LaTeX inside the Mermaid diagram nodes."
+  "mindMap": "A CLEAR Mermaid.js graph LR (horizontal) diagram. Use 'graph LR' ONLY. Ensure nodes are short. Avoid deep nesting. CRITICAL: DO NOT use any LaTeX or special math symbols inside Mermaid nodes as they will break the diagram."
 }
 
 CRITICAL INSTRUCTION FOR MATH AND JSON:

@@ -13,13 +13,22 @@ export default function MermaidChart({ chart }: MermaidChartProps) {
     useEffect(() => {
         mermaid.initialize({
             startOnLoad: true,
-            theme: 'default',
+            theme: 'base',
             securityLevel: 'loose',
             fontFamily: 'inherit',
+            themeVariables: {
+                primaryColor: '#6366f1',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#4f46e5',
+                lineColor: '#818cf8',
+                secondaryColor: '#f8fafc',
+                tertiaryColor: '#f1f5f9',
+            },
             flowchart: {
                 useMaxWidth: false,
                 htmlLabels: true,
-                curve: 'basis'
+                curve: 'basis',
+                padding: 40
             },
         });
 
@@ -29,14 +38,14 @@ export default function MermaidChart({ chart }: MermaidChartProps) {
         }
     }, [chart]);
 
-    // Clean up empty lines and common AI errors in mermaid output
-    const cleanChart = chart.replace(/\\n/g, '\n').trim();
+    // Clean up lines and common AI errors in mermaid output
+    const cleanChart = chart.replace(/\\n/g, '\n').replace(/&/g, 'and').trim();
 
     return (
-        <div className="w-full flex justify-center py-6 overflow-x-auto bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-slate-800 scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-transparent">
+        <div className="w-full flex justify-start items-start py-10 px-4 overflow-x-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-transparent min-h-[300px]">
             <div
                 ref={ref}
-                className="mermaid transition-all duration-500 scale-110 origin-top min-w-[600px] flex justify-center"
+                className="mermaid transition-opacity duration-500 opacity-100 mx-auto"
             >
                 {cleanChart}
             </div>
