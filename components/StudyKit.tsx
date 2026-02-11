@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle, Network, Trophy, XCircle, CheckCircle } from 'lucide-react';
+import { Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle, Network, Trophy, XCircle, CheckCircle, Layout, Layers } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import Flashcards from './Flashcards';
 
 interface QuizQuestion {
     question: string;
@@ -31,6 +32,8 @@ interface Section {
 }
 
 export default function StudyKit({ data }: StudyKitProps) {
+    const [viewMode, setViewMode] = useState<'quiz' | 'flashcards'>('quiz');
+
     if (!data) return null;
 
     const markdownComponents = {
@@ -75,7 +78,28 @@ export default function StudyKit({ data }: StudyKitProps) {
         {
             title: 'Practice Questions',
             icon: <HelpCircle className="w-5 h-5 text-orange-500" />,
-            content: <QuizComponent questions={data.quiz} />
+            content: (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit mx-auto mb-4 border border-slate-200 dark:border-slate-700">
+                        <button
+                            onClick={() => setViewMode('quiz')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'quiz' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            <Layout className="w-4 h-4" />
+                            Quiz View
+                        </button>
+                        <button
+                            onClick={() => setViewMode('flashcards')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'flashcards' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            <Layers className="w-4 h-4" />
+                            Flashcards
+                        </button>
+                    </div>
+
+                    {viewMode === 'quiz' ? <QuizComponent questions={data.quiz} /> : <Flashcards questions={data.quiz} />}
+                </div>
+            )
         },
         {
             title: 'Mind Map',
