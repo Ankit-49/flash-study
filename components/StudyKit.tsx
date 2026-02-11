@@ -1,12 +1,12 @@
-'use client';
-
-import { useState } from 'react';
-import { Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle, Network, Trophy, XCircle, CheckCircle, Layout, Layers, Tag } from 'lucide-react';
+import { Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle, Network, Trophy, XCircle, CheckCircle, Layout, Layers, Tag, Download, FileText, Loader2, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import Flashcards from './Flashcards';
+import { useRef } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface QuizQuestion {
     question: string;
@@ -34,8 +34,71 @@ interface Section {
 
 export default function StudyKit({ data }: StudyKitProps) {
     const [viewMode, setViewMode] = useState<'quiz' | 'flashcards'>('quiz');
+    const [exporting, setExporting] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
 
     if (!data) return null;
+
+    const handleExportMarkdown = () => {
+        let md = `# Study Kit: ${data.summary.substring(0, 50)}...\n\n`;
+        md += `## Summary\n${data.summary}\n\n`;
+
+        md += `## Key Terms\n`;
+        data.keyTerms?.forEach(tk => {
+            md += `- **${tk.term}**: ${tk.definition}\n`;
+        });
+        md += `\n`;
+
+        md += `## Analogies\n`;
+        data.analogies.forEach(a => md += `- ${a}\n`);
+        md += `\n`;
+
+        md += `## Quiz\n`;
+        data.quiz.forEach((q, i) => {
+            md += `${i + 1}. ${q.question}\n`;
+            q.options.forEach((o, oi) => md += `   - ${o}${oi === q.correctOptionIndex ? ' (Correct)' : ''}\n`);
+            md += `\n`;
+        });
+
+        md += `## Mind Map\n${data.mindMap}\n`;
+
+        const blob = new Blob([md], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `StudyKit-${Date.now()}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleExportPDF = async () => {
+        if (!contentRef.current) return;
+        setExporting(true);
+        try {
+            // Temporarily hide interactive elements or adjust styles for better PDF
+            const canvas = await html2canvas(contentRef.current, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff',
+                windowWidth: 800 // Consistent width for PDF
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`StudyKit-${Date.now()}.pdf`);
+        } catch (error) {
+            console.error('PDF Export failed:', error);
+        } finally {
+            setExporting(false);
+        }
+    };
 
     const markdownComponents = {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -138,10 +201,47 @@ export default function StudyKit({ data }: StudyKitProps) {
     ];
 
     return (
-        <div className="w-full max-w-3xl space-y-4 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {sections.map((section, idx) => (
-                <SectionCard key={idx} section={section} delay={idx * 100} />
-            ))}
+        <div className="w-full max-w-3xl space-y-6 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Export Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                        <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-white">Your Study Kit</h4>
+                        <p className="text-[10px] text-slate-500">Ready to save or review</p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleExportMarkdown}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                    >
+                        <FileText className="w-3.5 h-3.5" />
+                        Markdown
+                    </button>
+                    <button
+                        onClick={handleExportPDF}
+                        disabled={exporting}
+                        className="flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-50"
+                    >
+                        {exporting ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                            <Download className="w-3.5 h-3.5" />
+                        )}
+                        Export PDF
+                    </button>
+                </div>
+            </div>
+
+            <div ref={contentRef} className="space-y-4">
+                {sections.map((section, idx) => (
+                    <SectionCard key={idx} section={section} delay={idx * 100} />
+                ))}
+            </div>
         </div>
     );
 }
