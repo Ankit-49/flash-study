@@ -4,6 +4,13 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #020617;
+  --foreground: #f8fafc;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -13,15 +20,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #020617;
-    --foreground: #f8fafc;
-  }
-}
+/* Ensure Tailwind v4 dark: classes work with the .dark class */
+@variant dark (&:where(.dark, .dark *));
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
