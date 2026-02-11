@@ -6,6 +6,9 @@ For the provided text, generate a valid JSON object with the following structure
 {
   "summary": "One paragraph explaining the core concept in simple terms.",
   "analogies": ["Analogy 1", "Analogy 2"],
+  "keyTerms": [
+    { "term": "Term Name", "definition": "Clear, simple definition" }
+  ],
   "quiz": [
     { 
       "question": "Question text", 

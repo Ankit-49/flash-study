@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle, Network, Trophy, XCircle, CheckCircle, Layout, Layers } from 'lucide-react';
+import { Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle, Network, Trophy, XCircle, CheckCircle, Layout, Layers, Tag } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -17,6 +17,7 @@ interface QuizQuestion {
 export interface StudyKitData {
     summary: string;
     analogies: string[];
+    keyTerms: { term: string; definition: string }[];
     quiz: QuizQuestion[];
     mindMap: string;
 }
@@ -54,6 +55,25 @@ export default function StudyKit({ data }: StudyKitProps) {
                     >
                         {data.summary}
                     </ReactMarkdown>
+                </div>
+            )
+        },
+        {
+            title: 'Key Terms',
+            icon: <Tag className="w-5 h-5 text-teal-500" />,
+            content: (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {data.keyTerms?.map((term, i) => (
+                        <div key={i} className="p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 transition-colors">
+                            <p className="font-bold text-sm text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                                {term.term}
+                            </p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                {term.definition}
+                            </p>
+                        </div>
+                    ))}
                 </div>
             )
         },
