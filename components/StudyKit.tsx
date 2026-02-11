@@ -9,7 +9,7 @@ import 'katex/dist/katex.min.css';
 import Flashcards from './Flashcards';
 import MermaidChart from './MermaidChart';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 
 interface QuizQuestion {
     question: string;
@@ -80,21 +80,23 @@ export default function StudyKit({ data }: StudyKitProps) {
         if (!contentRef.current) return;
         setExporting(true);
         try {
-            // Temporarily hide interactive elements or adjust styles for better PDF
-            const canvas = await html2canvas(contentRef.current, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
+            // Use toPng from html-to-image which handles Tailwind v4 colors much better
+            const dataUrl = await toPng(contentRef.current, {
+                quality: 0.95,
                 backgroundColor: '#ffffff',
-                windowWidth: 800 // Consistent width for PDF
+                cacheBust: true,
+                style: {
+                    // Ensure the content looks good during capture
+                    borderRadius: '0'
+                }
             });
-            const imgData = canvas.toDataURL('image/png');
+
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgProps = pdf.getImageProperties(imgData);
+            const imgProps = pdf.getImageProperties(dataUrl);
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
             pdf.save(`StudyKit-${Date.now()}.pdf`);
         } catch (error) {
             console.error('PDF Export failed:', error);
