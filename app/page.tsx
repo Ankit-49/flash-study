@@ -76,7 +76,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-100 via-white to-white dark:from-slate-900 dark:via-slate-950 dark:to-black transition-colors duration-500">
+    <div className="flex min-h-screen theme-gradient transition-colors duration-500">
       <div className="fixed top-6 right-6 z-50">
         <ThemeToggle />
       </div>

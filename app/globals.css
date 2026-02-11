@@ -4,28 +4,58 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+
+  /* Gradient Colors - Light Mode */
+  --gradient-from: #e0e7ff;
+  /* indigo-100 */
+  --gradient-via: #ffffff;
+  --gradient-to: #ffffff;
+
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+
   color-scheme: light;
 }
 
 .dark {
   --background: #020617;
   --foreground: #f8fafc;
+
+  /* Gradient Colors - Dark Mode */
+  --gradient-from: #0f172a;
+  /* slate-900 */
+  --gradient-via: #020617;
+  /* slate-950 */
+  --gradient-to: #000000;
+
+  --card-bg: #0f172a;
+  --card-border: #1e293b;
+
   color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card-bg);
+  --color-border: var(--card-border);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* Ensure Tailwind v4 dark: classes work with the .dark class */
+/* Ensure Tailwind v4 dark: classes work as a fallback */
 @variant dark (&:where(.dark, .dark *));
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
+  margin: 0;
+}
+
+.theme-gradient {
+  background-image: radial-gradient(ellipse at top, var(--gradient-from), var(--gradient-via), var(--gradient-to));
+  transition: all 0.5s ease;
 }
