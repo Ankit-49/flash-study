@@ -8,8 +8,6 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import Flashcards from './Flashcards';
 import MermaidChart from './MermaidChart';
-import jsPDF from 'jspdf';
-import { toPng } from 'html-to-image';
 
 interface QuizQuestion {
     question: string;
@@ -37,7 +35,6 @@ interface Section {
 
 export default function StudyKit({ data }: StudyKitProps) {
     const [viewMode, setViewMode] = useState<'quiz' | 'flashcards'>('quiz');
-    const [exporting, setExporting] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
 
     if (!data) return null;
@@ -76,34 +73,6 @@ export default function StudyKit({ data }: StudyKitProps) {
         URL.revokeObjectURL(url);
     };
 
-    const handleExportPDF = async () => {
-        if (!contentRef.current) return;
-        setExporting(true);
-        try {
-            // Use toPng from html-to-image which handles Tailwind v4 colors much better
-            const dataUrl = await toPng(contentRef.current, {
-                quality: 0.95,
-                backgroundColor: '#ffffff',
-                cacheBust: true,
-                style: {
-                    // Ensure the content looks good during capture
-                    borderRadius: '0'
-                }
-            });
-
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgProps = pdf.getImageProperties(dataUrl);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-            pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-            pdf.save(`StudyKit-${Date.now()}.pdf`);
-        } catch (error) {
-            console.error('PDF Export failed:', error);
-        } finally {
-            setExporting(false);
-        }
-    };
 
     const markdownComponents = {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -232,27 +201,13 @@ export default function StudyKit({ data }: StudyKitProps) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={handleExportMarkdown}
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-                    >
-                        <FileText className="w-3.5 h-3.5" />
-                        Markdown
-                    </button>
-                    <button
-                        onClick={handleExportPDF}
-                        disabled={exporting}
-                        className="flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-50"
-                    >
-                        {exporting ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                            <Download className="w-3.5 h-3.5" />
-                        )}
-                        Export PDF
-                    </button>
-                </div>
+                <button
+                    onClick={handleExportMarkdown}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-md active:scale-95 flex-shrink-0"
+                >
+                    <FileText className="w-4 h-4" />
+                    Download Markdown
+                </button>
             </div>
 
             <div ref={contentRef} className="space-y-4">
