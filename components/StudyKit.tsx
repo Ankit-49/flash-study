@@ -131,13 +131,31 @@ export default function StudyKit({ data }: StudyKitProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {data.keyTerms?.map((term, i) => (
                         <div key={i} className="p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 transition-colors">
-                            <p className="font-bold text-sm text-slate-900 dark:text-white mb-1 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
-                                {term.term}
-                            </p>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                                {term.definition}
-                            </p>
+                            <div className="font-bold text-sm text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 flex-shrink-0"></span>
+                                <div className="prose dark:prose-invert max-w-none text-sm font-bold">
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkMath]}
+                                        rehypePlugins={[rehypeKatex]}
+                                        components={{
+                                            p: ({ node, ...props }: any) => <span {...props} />
+                                        }}
+                                    >
+                                        {term.term}
+                                    </ReactMarkdown>
+                                </div>
+                            </div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed prose dark:prose-invert max-w-none">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkMath]}
+                                    rehypePlugins={[rehypeKatex]}
+                                    components={{
+                                        p: ({ node, ...props }: any) => <span {...props} />
+                                    }}
+                                >
+                                    {term.definition}
+                                </ReactMarkdown>
+                            </div>
                         </div>
                     ))}
                 </div>
