@@ -114,7 +114,7 @@ export default function StudyKit({ data }: StudyKitProps) {
         {
             title: 'Summary',
             icon: <BookOpen className="w-5 h-5 text-blue-500" />,
-            content: (
+            content: data.summary && (
                 <div className="prose dark:prose-invert max-w-none">
                     <ReactMarkdown
                         remarkPlugins={[remarkMath]}
@@ -129,9 +129,9 @@ export default function StudyKit({ data }: StudyKitProps) {
         {
             title: 'Key Terms',
             icon: <Tag className="w-5 h-5 text-teal-500" />,
-            content: (
+            content: data.keyTerms && data.keyTerms.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {data.keyTerms?.map((term, i) => (
+                    {data.keyTerms.map((term, i) => (
                         <div key={i} className="p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 transition-colors">
                             <div className="font-bold text-sm text-slate-900 dark:text-white mb-1 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-teal-500 flex-shrink-0"></span>
@@ -166,7 +166,7 @@ export default function StudyKit({ data }: StudyKitProps) {
         {
             title: 'Analogies',
             icon: <Brain className="w-5 h-5 text-purple-500" />,
-            content: (
+            content: data.analogies && data.analogies.length > 0 && (
                 <ul className="list-disc pl-5 space-y-2">
                     {data.analogies.map((analogy, i) => (
                         <li key={i} className="text-slate-700 dark:text-slate-300">
@@ -184,7 +184,7 @@ export default function StudyKit({ data }: StudyKitProps) {
         {
             title: 'Practice Questions',
             icon: <HelpCircle className="w-5 h-5 text-orange-500" />,
-            content: (
+            content: data.quiz && data.quiz.length > 0 && (
                 <div className="space-y-6">
                     <div className="flex items-center justify-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit mx-auto mb-4 border border-slate-200 dark:border-slate-700">
                         <button
@@ -210,13 +210,13 @@ export default function StudyKit({ data }: StudyKitProps) {
         {
             title: 'Mind Map',
             icon: <Network className="w-5 h-5 text-green-500" />,
-            content: (
+            content: data.mindMap && (
                 <div className="w-full">
                     <MermaidChart chart={data.mindMap} />
                 </div>
             )
         }
-    ];
+    ].filter(section => section.content);
 
     return (
         <div className="w-full max-w-3xl space-y-6 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
