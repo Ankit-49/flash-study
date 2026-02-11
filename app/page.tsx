@@ -87,7 +87,7 @@ export default function Home() {
         <div className="text-center space-y-4 mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Zap className="w-6 h-6 text-indigo-600 dark:text-indigo-400 fill-current" />
-            <span className="font-bold text-indigo-600 dark:text-indigo-400 tracking-wider text-sm uppercase">FlashStudy MVP</span>
+            <span className="font-bold text-indigo-600 dark:text-indigo-400 tracking-wider text-sm uppercase">Study-Kit</span>
           </div>
           <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             Turn Confusion into <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">Clarity</span>
