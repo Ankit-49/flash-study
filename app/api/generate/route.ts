@@ -36,6 +36,10 @@ CRITICAL INSTRUCTION FOR MATH AND JSON:
 - Example: Write '$E = mc ^ 2$' for inline math.
 - Example: Write '$$...$$' for block math.
 - DO NOT output plain text formulas like 'epsilon0'. Use '$\\\\epsilon_0$'.
+- You MUST include ALL fields in the JSON object: "summary", "analogies", "keyTerms", "quiz", and "mindMap".
+- NEVER omit any field, even for large documents.
+- Ensure the "quiz" contains exactly 3 diverse multiple-choice questions.
+- Ensure the "mindMap" is a complete Mermaid.js graph.
 - Ensure the output is strictly valid JSON. Do not include markdown code blocks.`;
 
 export async function POST(request: Request) {
@@ -157,7 +161,8 @@ export async function POST(request: Request) {
                 const model = genAI.getGenerativeModel({
                     model: modelName,
                     generationConfig: {
-                        // Only use responseMimeType for models we are sure support it
+                        temperature: 0.2, // Lower temperature for more consistent JSON
+                        maxOutputTokens: 4096, // High limit to prevent truncation of large JSON
                         responseMimeType: (modelName.includes('1.5') || modelName.includes('2.') || isFlashLatest) ? "application/json" : "text/plain"
                     }
                 });
