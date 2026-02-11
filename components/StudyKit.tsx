@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useRef } from 'react';
 import { Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle, Network, Trophy, XCircle, CheckCircle, Layout, Layers, Tag, Download, FileText, Loader2, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -5,7 +8,6 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import Flashcards from './Flashcards';
 import MermaidChart from './MermaidChart';
-import { useRef } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
