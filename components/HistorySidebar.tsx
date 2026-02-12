@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, X, Trash2, Calendar, ChevronRight, Bookmark } from 'lucide-react';
+import { History, X, Trash2, Calendar, ChevronRight, Bookmark, Pin, Edit2, Check } from 'lucide-react';
 import { StudyKitData } from './StudyKit';
 
 interface HistoryItem {
@@ -10,6 +10,7 @@ interface HistoryItem {
     timestamp: number;
     title: string;
     data: StudyKitData;
+    isPinned?: boolean;
 }
 
 interface HistorySidebarProps {
@@ -20,6 +21,8 @@ interface HistorySidebarProps {
 
 export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySidebarProps) {
     const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editValue, setEditValue] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -27,7 +30,12 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
-                    setHistory(parsed.sort((a: HistoryItem, b: HistoryItem) => b.timestamp - a.timestamp));
+                    const sorted = parsed.sort((a: HistoryItem, b: HistoryItem) => {
+                        if (a.isPinned && !b.isPinned) return -1;
+                        if (!a.isPinned && b.isPinned) return 1;
+                        return b.timestamp - a.timestamp;
+                    });
+                    setHistory(sorted);
                 } catch (e) {
                     console.error('Failed to parse history', e);
                 }
@@ -35,11 +43,41 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
         }
     }, [isOpen]);
 
+    const saveHistory = (items: HistoryItem[]) => {
+        setHistory(items);
+        localStorage.setItem('study_history', JSON.stringify(items));
+    };
+
     const deleteItem = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         const updated = history.filter(item => item.id !== id);
-        setHistory(updated);
-        localStorage.setItem('study_history', JSON.stringify(updated));
+        saveHistory(updated);
+    };
+
+    const togglePin = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const updated = history.map(item =>
+            item.id === id ? { ...item, isPinned: !item.isPinned } : item
+        ).sort((a, b) => {
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+            return b.timestamp - a.timestamp;
+        });
+        saveHistory(updated);
+    };
+
+    const startRename = (item: HistoryItem, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingId(item.id);
+        setEditValue(item.title);
+    };
+
+    const handleRename = (id: string) => {
+        const updated = history.map(item =>
+            item.id === id ? { ...item, title: editValue } : item
+        );
+        saveHistory(updated);
+        setEditingId(null);
     };
 
     return (
@@ -87,27 +125,59 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
                                         key={item.id}
                                         layout
                                         onClick={() => {
+                                            if (editingId === item.id) return;
                                             onSelect(item.data);
                                             onClose();
                                         }}
-                                        className="group relative p-4 bg-slate-50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-primary/30 transition-all cursor-pointer shadow-sm hover:shadow-md"
+                                        className={`group relative p-4 rounded-2xl border transition-all cursor-pointer shadow-sm hover:shadow-md ${item.isPinned ? 'bg-primary/5 border-primary/20' : 'bg-slate-50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-primary/30'}`}
                                     >
-                                        <div className="flex flex-col gap-1 pr-8">
-                                            <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors">
-                                                {item.title}
-                                            </h4>
+                                        <div className="flex flex-col gap-1 pr-12">
+                                            {editingId === item.id ? (
+                                                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                                    <input
+                                                        autoFocus
+                                                        value={editValue}
+                                                        onChange={e => setEditValue(e.target.value)}
+                                                        onKeyDown={e => e.key === 'Enter' && handleRename(item.id)}
+                                                        className="w-full bg-white dark:bg-slate-800 border border-primary/30 rounded px-2 py-1 text-sm outline-none"
+                                                    />
+                                                    <button onClick={() => handleRename(item.id)} className="p-1 text-green-500">
+                                                        <Check className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors flex-1">
+                                                        {item.title}
+                                                    </h4>
+                                                    <button
+                                                        onClick={(e) => startRename(item, e)}
+                                                        className="p-1 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-primary transition-all"
+                                                    >
+                                                        <Edit2 className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            )}
                                             <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium lowercase">
                                                 <Calendar className="w-3 h-3" />
                                                 {new Date(item.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={(e) => deleteItem(item.id, e)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-hover:opacity-0 transition-all" />
+
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                            <button
+                                                onClick={(e) => togglePin(item.id, e)}
+                                                className={`p-1.5 rounded-lg transition-all ${item.isPinned ? 'text-primary' : 'opacity-0 group-hover:opacity-100 text-slate-400 hover:text-primary'}`}
+                                            >
+                                                <Pin className={`w-3.5 h-3.5 ${item.isPinned ? 'fill-current' : ''}`} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => deleteItem(item.id, e)}
+                                                className="p-1.5 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
                                     </motion.div>
                                 ))
                             )}

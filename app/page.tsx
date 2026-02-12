@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Loader2, Zap, Upload, FileText, ChevronRight, History } from 'lucide-react';
+import { Sparkles, Loader2, Zap, Upload, FileText, ChevronRight, History, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import StudyKit, { StudyKitData } from '@/components/StudyKit';
 import ChatInterface from '@/components/ChatInterface';
@@ -289,19 +289,38 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_100%] animate-gradient-x group-hover:opacity-100 opacity-0 transition-opacity" />
               <span className="relative z-10 flex items-center gap-2">
                 {loading ? (
-                  <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Processing...</span>
+                  <div className="w-full max-w-sm mx-auto space-y-5 py-2">
+                    {/* Visual Progress Bar */}
+                    <div className="relative h-1.5 w-full bg-white/20 rounded-full overflow-hidden shadow-inner">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${((loadingStep + 1) / loadingSteps.length) * 100}%` }}
+                        className="absolute h-full bg-gradient-to-r from-white/80 to-white"
+                        transition={{ duration: 0.5 }}
+                      />
                     </div>
-                    <motion.p
-                      key={loadingStep}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-[10px] font-medium text-white/70 uppercase tracking-widest"
-                    >
-                      {loadingSteps[loadingStep]}
-                    </motion.p>
+                    {/* Steps Checklist */}
+                    <div className="space-y-2.5">
+                      {loadingSteps.map((step, idx) => {
+                        const isDone = idx < loadingStep;
+                        const isCurrent = idx === loadingStep;
+                        return (
+                          <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: (isDone || isCurrent) ? 1 : 0.2, x: 0 }}
+                            className="flex items-center gap-3"
+                          >
+                            <div className={`w-4.5 h-4.5 rounded-full flex items-center justify-center border transition-all duration-500 ${isDone ? 'bg-white border-white scale-110' : isCurrent ? 'border-white animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'border-white/20 scale-90'}`}>
+                              {isDone ? <Check className="w-2.5 h-2.5 text-primary" strokeWidth={4} /> : isCurrent && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </div>
+                            <span className={`text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 ${isCurrent ? 'text-white' : isDone ? 'text-white/80' : 'text-white/30'}`}>
+                              {step}
+                            </span>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
                   </div>
                 ) : (
                   <>

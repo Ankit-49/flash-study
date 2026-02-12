@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, User, Bot, Loader2, MessageSquare } from 'lucide-react';
+import { Send, User, Bot, Loader2, MessageSquare, Sparkles, X } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -64,97 +65,92 @@ export default function ChatInterface({ context, isOpen, onToggle }: ChatInterfa
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
             {/* Chat Window */}
             {isOpen && (
-                <div className="flex flex-col h-[500px] w-[350px] sm:w-[400px] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-10 duration-300 mb-4">
+                <div className="flex flex-col h-[550px] w-[350px] sm:w-[420px] glass-panel rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-10 duration-500 mb-6 bg-white/80 dark:bg-slate-900/80">
                     {/* Header */}
-                    <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-indigo-600 flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-white">
-                            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                                <MessageSquare className="w-4 h-4" />
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-primary/10 flex items-center justify-between backdrop-blur-md">
+                        <div className="flex items-center gap-4 text-slate-900 dark:text-white">
+                            <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center shadow-inner">
+                                <Sparkles className="w-5 h-5 text-primary" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-sm">Study Assistant</h3>
-                                <p className="text-[10px] opacity-80">Online | Based on your notes</p>
+                                <h3 className="font-black text-sm tracking-tight">Mastery Assistant</h3>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Active Insight Engine</p>
+                                </div>
                             </div>
                         </div>
                         <button
                             onClick={() => onToggle(false)}
-                            className="text-white hover:bg-white/10 p-1 rounded-lg transition-colors"
+                            className="text-slate-400 hover:text-red-500 p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
 
                     {/* Messages */}
                     <div
                         ref={scrollRef}
-                        className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth bg-slate-50 dark:bg-slate-950/50"
+                        className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth bg-slate-50/30 dark:bg-slate-950/20"
                     >
                         {messages.length === 0 && !loading && (
-                            <div className="h-full flex flex-col items-center justify-center text-center space-y-3 opacity-60">
-                                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                    <Bot className="w-6 h-6" />
+                            <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-60">
+                                <div className="w-16 h-16 rounded-[2rem] bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 shadow-inner">
+                                    <Bot className="w-8 h-8" />
                                 </div>
                                 <div>
-                                    <p className="text-slate-600 dark:text-slate-300 text-sm font-medium">Hello there!</p>
-                                    <p className="text-xs text-slate-400">Ask any question about your study material.</p>
+                                    <p className="text-slate-900 dark:text-white text-sm font-black">Ready to expand your knowledge</p>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Ask anything about this document</p>
                                 </div>
                             </div>
                         )}
 
                         {messages.map((msg, i) => (
-                            <div
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
                                 key={i}
-                                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-1 duration-300`}
+                                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
-                                <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                    <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700'}`}>
-                                        {msg.role === 'user' ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
-                                    </div>
-                                    <div className={`p-3 rounded-2xl text-[13px] leading-relaxed shadow-sm ${msg.role === 'user'
-                                        ? 'bg-indigo-600 text-white rounded-tr-none'
-                                        : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none border border-slate-200 dark:border-slate-700'
+                                <div className={`flex gap-3 max-w-[90%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                    <div className={`p-4 rounded-3xl text-sm leading-relaxed shadow-sm ${msg.role === 'user'
+                                        ? 'bg-primary text-white rounded-tr-none font-bold'
+                                        : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none border border-slate-100 dark:border-slate-700 font-medium'
                                         }`}>
                                         {msg.content}
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
 
                         {loading && (
                             <div className="flex justify-start">
-                                <div className="flex gap-2 max-w-[85%]">
-                                    <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                        <Bot className="w-3.5 h-3.5 text-slate-400" />
-                                    </div>
-                                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 rounded-tl-none border border-slate-200 dark:border-slate-700">
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
-                                    </div>
+                                <div className="flex gap-2 max-w-[85%] items-center text-primary">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Assistant Thinking...</span>
                                 </div>
                             </div>
                         )}
                     </div>
 
                     {/* Input */}
-                    <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
-                        <div className="flex gap-2">
+                    <div className="p-5 bg-white/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 backdrop-blur-md">
+                        <div className="flex gap-3">
                             <input
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                placeholder="Type a message..."
-                                className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-[13px] focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all dark:text-white"
+                                placeholder="Inquire about a concept..."
+                                className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white font-medium shadow-inner"
                                 disabled={loading}
-                                autoFocus
                             />
                             <button
                                 onClick={handleSend}
                                 disabled={loading || !input.trim()}
-                                className="w-9 h-9 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-md flex-shrink-0"
+                                className="w-12 h-12 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-2xl flex items-center justify-center transition-all active:scale-95 shadow-lg shadow-primary/20 flex-shrink-0"
                             >
-                                <Send className="w-3.5 h-3.5" />
+                                <Send className="w-5 h-5" />
                             </button>
                         </div>
                     </div>

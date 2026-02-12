@@ -46,22 +46,45 @@ export default function StudyKit({ data }: StudyKitProps) {
     const [viewMode, setViewMode] = useState<'quiz' | 'flashcards'>('quiz');
     const [activeTab, setActiveTab] = useState('summary');
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [speakingTextId, setSpeakingTextId] = useState<string | null>(null);
+    const [charIndex, setCharIndex] = useState(0);
     const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
     if (!data) return null;
 
-    const handleSpeech = () => {
-        if (isSpeaking) {
+    const handleSpeech = (text: string, id: string = 'summary') => {
+        if (isSpeaking && speakingTextId === id) {
             window.speechSynthesis.cancel();
             setIsSpeaking(false);
+            setSpeakingTextId(null);
+            setCharIndex(0);
             return;
         }
 
-        const utterance = new SpeechSynthesisUtterance(data.summary);
-        utterance.onend = () => setIsSpeaking(false);
+        if (isSpeaking) {
+            window.speechSynthesis.cancel();
+        }
+
+        // Strip some common markdown for cleaner speech
+        const cleanText = text.replace(/[*_#>`~]/g, '');
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+
+        utterance.onboundary = (event) => {
+            if (event.name === 'word') {
+                setCharIndex(event.charIndex);
+            }
+        };
+
+        utterance.onend = () => {
+            setIsSpeaking(false);
+            setSpeakingTextId(null);
+            setCharIndex(0);
+        };
+
         speechRef.current = utterance;
-        window.speechSynthesis.speak(utterance);
         setIsSpeaking(true);
+        setSpeakingTextId(id);
+        window.speechSynthesis.speak(utterance);
     };
 
     useEffect(() => {
@@ -121,17 +144,21 @@ export default function StudyKit({ data }: StudyKitProps) {
                             <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Executive Summary</h3>
                         </div>
                         <button
-                            onClick={handleSpeech}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/10 text-[10px] font-black text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-all uppercase tracking-[0.15em] border border-blue-100/50 dark:border-blue-800/20"
+                            onClick={() => handleSpeech(data.summary, 'summary')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all uppercase tracking-[0.15em] border ${speakingTextId === 'summary' ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400 border-blue-100/50 dark:border-blue-800/20 hover:bg-blue-100'}`}
                         >
-                            {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                            {isSpeaking ? 'Stop Audio' : 'Play Briefing'}
+                            {speakingTextId === 'summary' ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                            {speakingTextId === 'summary' ? 'Stop Audio' : 'Play Briefing'}
                         </button>
                     </div>
                     <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-lg font-medium selection:bg-blue-100 dark:selection:bg-blue-900/30">
-                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                            {data.summary}
-                        </ReactMarkdown>
+                        {speakingTextId === 'summary' ? (
+                            <SpeechHighlighter text={data.summary} charIndex={charIndex} />
+                        ) : (
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                {data.summary}
+                            </ReactMarkdown>
+                        )}
                     </div>
                 </motion.div>
             )
@@ -149,14 +176,22 @@ export default function StudyKit({ data }: StudyKitProps) {
                     className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                 >
                     {data.keyTerms.map((term, i) => (
-                        <div key={i} className="p-6 glass-panel rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-teal-500/50 transition-all group/term bg-white/40 dark:bg-slate-900/40 shadow-sm">
-                            <div className="font-black text-sm text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                                <div className="p-1.5 bg-teal-500/10 rounded-lg">
-                                    <Tag className="w-3 h-3 text-teal-600" />
+                        <div key={i} className="p-6 glass-panel rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-teal-500/50 transition-all group/term bg-white/40 dark:bg-slate-900/40 shadow-sm relative">
+                            <div className="flex justify-between items-start mb-3">
+                                <div className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                                    <div className="p-1.5 bg-teal-500/10 rounded-lg">
+                                        <Tag className="w-3 h-3 text-teal-600" />
+                                    </div>
+                                    <ReactMarkdown components={{ p: ({ children }) => <span>{children}</span> }} remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                        {term.term}
+                                    </ReactMarkdown>
                                 </div>
-                                <ReactMarkdown components={{ p: ({ children }) => <span>{children}</span> }} remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                                    {term.term}
-                                </ReactMarkdown>
+                                <button
+                                    onClick={() => handleSpeech(term.definition, `term-${i}`)}
+                                    className={`p-2 rounded-lg transition-all ${speakingTextId === `term-${i}` ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20'}`}
+                                >
+                                    {speakingTextId === `term-${i}` ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                                </button>
                             </div>
                             <div className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
                                 <ReactMarkdown components={{ p: ({ children }) => <span>{children}</span> }} remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
@@ -449,5 +484,34 @@ function QuizComponent({ questions }: { questions: QuizQuestion[] }) {
                 </motion.div>
             )}
         </div>
+    );
+}
+
+function SpeechHighlighter({ text, charIndex }: { text: string, charIndex: number }) {
+    // Strip markdown for sync with speech engine
+    const cleanText = text.replace(/[*_#>`~]/g, '');
+    const words = cleanText.split(/(\s+)/);
+    let cumulative = 0;
+
+    return (
+        <span>
+            {words.map((part, i) => {
+                const start = cumulative;
+                cumulative += part.length;
+                const end = cumulative;
+
+                const isMatch = charIndex >= start && charIndex < end && !/\s+/.test(part);
+
+                return (
+                    <motion.span
+                        key={i}
+                        animate={isMatch ? { scale: 1.05, backgroundColor: 'rgba(79, 70, 229, 0.15)' } : { scale: 1, backgroundColor: 'transparent' }}
+                        className={isMatch ? 'text-primary font-bold rounded px-0.5 transition-colors inline-block' : 'inline-block'}
+                    >
+                        {part}
+                    </motion.span>
+                );
+            })}
+        </span>
     );
 }
