@@ -162,7 +162,7 @@ export async function POST(request: Request) {
                     model: modelName,
                     generationConfig: {
                         temperature: 0.2, // Lower temperature for more consistent JSON
-                        maxOutputTokens: 4096, // High limit to prevent truncation of large JSON
+                        maxOutputTokens: 8192, // Increased limit to prevent truncation of large JSON
                         responseMimeType: (modelName.includes('1.5') || modelName.includes('2.') || isFlashLatest) ? "application/json" : "text/plain"
                     }
                 });
@@ -187,42 +187,49 @@ export async function POST(request: Request) {
         console.log('Generation successful');
 
         // Robust JSON Extraction and Cleaning
+        const extractJSON = (text: string) => {
+            try {
+                // Try direct parse first
+                return JSON.parse(text);
+            } catch (e) {
+                // Cleaning phase
+                let cleaned = text
+                    .replace(/```json\n?/, '')
+                    .replace(/\n?```/, '')
+                    .trim();
+
+                try {
+                    return JSON.parse(cleaned);
+                } catch (e2) {
+                    // Deep extraction
+                    const startIdx = cleaned.indexOf('{');
+                    const endIdx = cleaned.lastIndexOf('}');
+                    if (startIdx !== -1 && endIdx !== -1) {
+                        cleaned = cleaned.substring(startIdx, endIdx + 1);
+                        try {
+                            return JSON.parse(cleaned);
+                        } catch (e3) {
+                            // Last resort: handle unescaped newlines within strings
+                            // This is risky but helps with common AI formatting errors
+                            const ultraCleaned = cleaned.replace(/\n(?=[^"]*"[^"]*(?:"[^"]*"[^"]*)*$)/g, "\\n");
+                            return JSON.parse(ultraCleaned);
+                        }
+                    }
+                    throw e2;
+                }
+            }
+        };
+
         try {
-            // Remove potential markdown blocks
-            outputText = outputText.replace(/```json\n?/, '').replace(/\n?```/, '').trim();
-
-            // Handle common AI "mistakes" in JSON (unescaped newlines in strings)
-            // This is a partial fix for "Bad control character"
-            const cleanedOutput = outputText.replace(/\n/g, ' ').replace(/\r/g, ' ');
-
-            const jsonOutput = JSON.parse(cleanedOutput);
+            const jsonOutput = extractJSON(outputText);
 
             return NextResponse.json({
                 result: jsonOutput,
                 context: text
             });
-        } catch (parseError) {
-            console.error('Initial JSON parse failed, trying fallback extraction:', parseError);
-
-            // Fallback: try to find the first '{' and last '}'
-            const startIdx = outputText.indexOf('{');
-            const endIdx = outputText.lastIndexOf('}');
-
-            if (startIdx !== -1 && endIdx !== -1) {
-                try {
-                    const fallbackExtract = outputText.substring(startIdx, endIdx + 1)
-                        .replace(/\n/g, ' ')
-                        .replace(/\r/g, ' ');
-                    const jsonOutput = JSON.parse(fallbackExtract);
-                    return NextResponse.json({
-                        result: jsonOutput,
-                        context: text
-                    });
-                } catch (e) {
-                    throw new Error('Failed to parse AI response as JSON even with fallback extraction.');
-                }
-            }
-            throw parseError;
+        } catch (parseError: any) {
+            console.error('AI JSON Parsing failed after all attempts:', parseError.message);
+            throw new Error(`AI response formatting error: ${parseError.message}`);
         }
 
     } catch (error: any) {
