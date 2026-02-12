@@ -44,8 +44,8 @@ interface Section {
 
 export default function StudyKit({ data }: StudyKitProps) {
     const [viewMode, setViewMode] = useState<'quiz' | 'flashcards'>('quiz');
+    const [activeTab, setActiveTab] = useState('summary');
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const [activeSection, setActiveSection] = useState<string | null>('summary');
     const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
     if (!data) return null;
@@ -107,207 +107,218 @@ export default function StudyKit({ data }: StudyKitProps) {
             id: 'summary',
             title: 'Summary',
             color: 'blue',
-            icon: <BookOpen className="w-5 h-5 text-blue-500" />,
+            icon: <BookOpen className="w-4 h-4" />,
             content: (
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between mb-2">
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-6"
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Executive Summary</h3>
+                        </div>
                         <button
                             onClick={handleSpeech}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors uppercase tracking-widest"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/10 text-[10px] font-black text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-all uppercase tracking-[0.15em] border border-blue-100/50 dark:border-blue-800/20"
                         >
-                            {isSpeaking ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
-                            {isSpeaking ? 'Stop Listening' : 'Listen to Summary'}
+                            {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                            {isSpeaking ? 'Stop Audio' : 'Play Briefing'}
                         </button>
                     </div>
-                    <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed">
+                    <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-lg font-medium selection:bg-blue-100 dark:selection:bg-blue-900/30">
                         <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                             {data.summary}
                         </ReactMarkdown>
                     </div>
-                </div>
+                </motion.div>
             )
         },
         {
             id: 'terms',
-            title: 'Key Concepts',
+            title: 'Concepts',
             color: 'teal',
-            icon: <Tag className="w-5 h-5 text-teal-500" />,
+            icon: <Tag className="w-4 h-4" />,
             content: (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                >
                     {data.keyTerms.map((term, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="p-4 bg-white/50 dark:bg-slate-950/30 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 transition-all group/term"
-                        >
-                            <div className="font-bold text-sm text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-teal-500 group-hover:scale-125 transition-transform"></span>
+                        <div key={i} className="p-6 glass-panel rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-teal-500/50 transition-all group/term bg-white/40 dark:bg-slate-900/40 shadow-sm">
+                            <div className="font-black text-sm text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                                <div className="p-1.5 bg-teal-500/10 rounded-lg">
+                                    <Tag className="w-3 h-3 text-teal-600" />
+                                </div>
                                 <ReactMarkdown components={{ p: ({ children }) => <span>{children}</span> }} remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                                     {term.term}
                                 </ReactMarkdown>
                             </div>
-                            <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            <div className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
                                 <ReactMarkdown components={{ p: ({ children }) => <span>{children}</span> }} remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                                     {term.definition}
                                 </ReactMarkdown>
                             </div>
-                        </motion.div>
+                        </div>
                     ))}
-                </div>
+                </motion.div>
             )
         },
         {
             id: 'analogies',
             title: 'Analogies',
             color: 'purple',
-            icon: <Brain className="w-5 h-5 text-purple-500" />,
+            icon: <Brain className="w-4 h-4" />,
             content: (
-                <div className="space-y-4">
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-4"
+                >
                     {data.analogies.map((analogy, i) => (
-                        <div key={i} className="flex gap-4 p-4 bg-purple-50/50 dark:bg-purple-900/10 rounded-2xl border border-purple-100 dark:border-purple-900/20">
-                            <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 text-purple-600 dark:text-purple-400 font-bold text-xs italic">
+                        <div key={i} className="flex gap-6 p-8 glass-panel rounded-[2.5rem] border border-purple-100 dark:border-purple-900/20 bg-purple-50/30 dark:bg-purple-900/5">
+                            <div className="w-12 h-12 rounded-2xl bg-purple-500 text-white flex items-center justify-center flex-shrink-0 font-black text-xl shadow-lg shadow-purple-500/20">
                                 A
                             </div>
-                            <div className="text-sm text-slate-700 dark:text-slate-300 italic self-center">
+                            <div className="text-lg text-slate-700 dark:text-slate-200 font-bold italic self-center leading-snug">
                                 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                                     {analogy}
                                 </ReactMarkdown>
                             </div>
                         </div>
                     ))}
-                </div>
+                </motion.div>
             )
         },
         {
             id: 'practice',
-            title: 'Self Assessment',
+            title: 'Recall',
             color: 'orange',
-            icon: <HelpCircle className="w-5 h-5 text-orange-500" />,
+            icon: <HelpCircle className="w-4 h-4" />,
             content: (
-                <div className="space-y-6">
-                    <div className="flex items-center justify-center p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl w-fit mx-auto border border-slate-200 dark:border-slate-700">
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-8"
+                >
+                    <div className="flex items-center justify-center p-1.5 bg-slate-100 dark:bg-slate-800/50 backdrop-blur-xl rounded-[2rem] w-fit mx-auto border border-slate-200 dark:border-slate-700 shadow-inner">
                         <button
                             onClick={() => setViewMode('quiz')}
-                            className={`flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'quiz' ? 'bg-white dark:bg-slate-700 shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700'}`}
+                            className={`flex items-center gap-2 px-8 py-3 rounded-[1.5rem] text-xs font-black transition-all tracking-widest ${viewMode === 'quiz' ? 'bg-white dark:bg-slate-700 shadow-lg text-primary scale-105' : 'text-slate-500 hover:text-slate-700'}`}
                         >
                             <Layout className="w-3.5 h-3.5" />
-                            QUIZ
+                            MODULE TEST
                         </button>
                         <button
                             onClick={() => setViewMode('flashcards')}
-                            className={`flex items-center gap-2 px-6 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'flashcards' ? 'bg-white dark:bg-slate-700 shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700'}`}
+                            className={`flex items-center gap-2 px-8 py-3 rounded-[1.5rem] text-xs font-black transition-all tracking-widest ${viewMode === 'flashcards' ? 'bg-white dark:bg-slate-700 shadow-lg text-primary scale-105' : 'text-slate-500 hover:text-slate-700'}`}
                         >
                             <Layers className="w-3.5 h-3.5" />
-                            CARDS
+                            SPACED RECALL
                         </button>
                     </div>
 
-                    <div className="mt-4">
+                    <div className="mt-8">
                         {viewMode === 'quiz' ? <QuizComponent questions={data.quiz} /> : <Flashcards questions={data.quiz} />}
                     </div>
-                </div>
+                </motion.div>
             )
         },
         {
             id: 'mindmap',
-            title: 'Knowledge Map',
+            title: 'Schema',
             color: 'green',
-            icon: <Network className="w-5 h-5 text-green-500" />,
+            icon: <Network className="w-4 h-4" />,
             content: (
-                <div className="w-full glass-panel rounded-2xl p-4 sm:p-8 bg-white/30">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full glass-panel rounded-[3rem] p-8 sm:p-12 bg-white/40 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800"
+                >
                     <MermaidChart chart={data.mindMap} />
-                </div>
+                </motion.div>
             )
         }
     ].filter(s => s.content);
 
+    const activeContent = sections.find(s => s.id === activeTab)?.content;
+
     return (
-        <div className="w-full max-w-4xl space-y-8 mt-12 mb-20">
+        <div className="w-full max-w-5xl space-y-10 mt-12 mb-32">
             {/* Premium Header/Toolbar */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-wrap items-center justify-between gap-6 p-6 glass-panel rounded-3xl"
+                className="flex flex-wrap items-center justify-between gap-6 p-8 glass-panel rounded-[3rem] bg-white/60 dark:bg-slate-900/60 shadow-xl border border-white/20 dark:border-slate-800/20"
             >
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
-                        <Sparkles className="w-6 h-6 text-primary" />
+                <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 bg-primary/10 rounded-[2rem] flex items-center justify-center shadow-inner overflow-hidden relative group">
+                        <div className="absolute inset-0 bg-primary/20 scale-0 group-hover:scale-110 transition-transform duration-500" />
+                        <Sparkles className="w-8 h-8 text-primary relative z-10" />
                     </div>
                     <div>
-                        <h4 className="text-lg font-bold text-slate-900 dark:text-white">AI Study Syllabus</h4>
-                        <p className="text-xs text-slate-500 font-medium">Generated from your materials</p>
+                        <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Interactive Knowledge OS</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Ready for exploration</p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <button
                         onClick={handleExportMarkdown}
-                        className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-xl transition-all shadow-lg active:scale-95"
+                        className="flex items-center gap-2.5 px-6 py-3.5 text-xs font-black text-white bg-primary hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] rounded-2xl transition-all active:scale-95 uppercase tracking-widest shadow-lg"
                     >
-                        <Download className="w-3.5 h-3.5" />
+                        <Download className="w-4 h-4" />
                         Export .MD
                     </button>
                 </div>
             </motion.div>
 
-            {/* Content Sections */}
-            <div className="grid grid-cols-1 gap-6">
-                {sections.map((section, idx) => (
-                    <SectionCard
+            {/* Premium Tab Navigation */}
+            <div className="flex items-center justify-center p-2 bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-2xl rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 shadow-inner w-full max-w-fit mx-auto sticky top-4 z-40">
+                {sections.map((section) => (
+                    <button
                         key={section.id}
-                        section={section}
-                        isOpen={activeSection === section.id}
-                        toggle={() => setActiveSection(activeSection === section.id ? null : section.id)}
-                        delay={idx * 0.1}
-                    />
+                        onClick={() => setActiveTab(section.id)}
+                        className={`relative flex items-center gap-2.5 px-6 py-3.5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${activeTab === section.id ? 'text-primary' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    >
+                        {activeTab === section.id && (
+                            <motion.div
+                                layoutId="activeTab"
+                                className="absolute inset-0 bg-white dark:bg-slate-700 shadow-xl rounded-[2rem] z-0"
+                                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                            />
+                        )}
+                        <span className="relative z-10">{section.icon}</span>
+                        <span className="relative z-10 hidden sm:inline">{section.title}</span>
+                    </button>
                 ))}
             </div>
-        </div>
-    );
-}
 
-function SectionCard({ section, isOpen, toggle, delay }: { section: Section, isOpen: boolean, toggle: () => void, delay: number }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay, duration: 0.5 }}
-            className={`glass-panel rounded-3xl overflow-hidden transition-all duration-300 ${isOpen ? 'ring-2 ring-primary/20 bg-white/80 dark:bg-slate-900/80 shadow-2xl' : 'hover:bg-white/50 dark:hover:bg-slate-900/50'}`}
-        >
-            <div
-                className="flex items-center justify-between p-6 cursor-pointer select-none"
-                onClick={toggle}
-            >
-                <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isOpen ? 'bg-primary/10 text-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
-                        {section.icon}
-                    </div>
-                    <span className={`font-bold transition-all ${isOpen ? 'text-lg text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
-                        {section.title}
-                    </span>
-                </div>
-                <div className={`transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : 'text-slate-400'}`}>
-                    <ChevronDown className="w-6 h-6" />
-                </div>
-            </div>
-
-            <AnimatePresence>
-                {isOpen && (
+            {/* Animated Tab Content */}
+            <div className="relative min-h-[400px]">
+                <AnimatePresence mode="wait">
                     <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.4, ease: "circOut" }}
                     >
-                        <div className="p-8 pt-2 border-t border-slate-100 dark:border-slate-800/50">
-                            {section.content}
-                        </div>
+                        {activeContent}
                     </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
+                </AnimatePresence>
+            </div>
+        </div>
     );
 }
 
