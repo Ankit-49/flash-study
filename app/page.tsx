@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Sparkles, Loader2, Zap, Upload, FileText } from 'lucide-react';
+import { Sparkles, Loader2, Zap, Upload, FileText, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import StudyKit, { StudyKitData } from '@/components/StudyKit';
 import ChatInterface from '@/components/ChatInterface';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -76,149 +77,200 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen theme-gradient transition-colors duration-500">
+    <div className="flex min-h-screen relative overflow-hidden bg-background">
+      {/* Background Mesh Gradient */}
+      <div className="theme-gradient" />
+
       <div className="fixed top-6 right-6 z-50">
         <ThemeToggle />
       </div>
 
-      <main className={`flex-1 flex flex-col items-center p-6 sm:p-24 transition-all duration-500 ease-in-out ${isChatOpen ? 'lg:mr-[400px]' : ''}`}>
+      <main className={`flex-1 flex flex-col items-center p-6 sm:p-24 relative z-10 transition-all duration-500 ease-in-out ${isChatOpen ? 'lg:mr-[400px]' : ''}`}>
 
-        {/* Header */}
-        <div className="text-center space-y-4 mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Zap className="w-6 h-6 text-indigo-600 dark:text-indigo-400 fill-current" />
-            <span className="font-bold text-indigo-600 dark:text-indigo-400 tracking-wider text-sm uppercase">Study-Kit</span>
-          </div>
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Turn Confusion into <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">Clarity</span>
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="text-center space-y-6 mb-16"
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="flex items-center justify-center gap-2 mb-2 bg-primary/10 backdrop-blur-md px-3 py-1 rounded-full border border-primary/20 w-fit mx-auto"
+          >
+            <Zap className="w-3.5 h-3.5 text-primary fill-current" />
+            <span className="font-bold text-primary tracking-widest text-[10px] uppercase">Powered by Gemini Pro</span>
+          </motion.div>
+
+          <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.1]">
+            Master Anything <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">Instantly</span>
           </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Upload a file, paste your notes, or do both. Get a structured study kit in seconds.
+
+          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            The world's most advanced study companion. Paste your notes or upload documents to generate structured kits in seconds.
           </p>
-        </div>
+        </motion.div>
 
-        {/* Input Section */}
-        <div className="w-full max-w-3xl space-y-6">
-          <div className="grid grid-cols-1 gap-6">
-            {/* Text Input */}
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative">
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Paste your notes or textbook content here..."
-                  className="w-full min-h-[150px] p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 backdrop-blur-sm shadow-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-y text-slate-700 dark:text-slate-200 placeholder:text-slate-400 transition-all text-base leading-relaxed"
-                  disabled={loading}
-                />
-              </div>
-            </div>
+        {/* Main Interface Container */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+          className="w-full max-w-3xl space-y-8"
+        >
+          <div className="glass-panel rounded-[2rem] p-6 sm:p-10 space-y-8 relative overflow-hidden group">
+            {/* Decorative background glow */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-colors" />
 
-            <div className="flex items-center justify-center text-slate-400 font-medium text-sm">
-              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
-              <span className="px-4">AND / OR</span>
-              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
-            </div>
-
-            {/* File Upload */}
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative">
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`w-full p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all ${files.length > 0 ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/10' : 'border-slate-200 dark:border-slate-800 hover:border-indigo-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 bg-white dark:bg-slate-900/80 backdrop-blur-sm shadow-xl'}`}
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    className="hidden"
-                    accept=".txt,.md,.pdf"
-                    multiple
+            {/* Input Section */}
+            <div className="space-y-6 relative z-10">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Paste Content</label>
+                <div className="relative group/input">
+                  <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Drop your textbook chapters, lecture notes, or complex theories here..."
+                    className="w-full min-h-[160px] p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md shadow-inner focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none text-slate-700 dark:text-slate-200 placeholder:text-slate-400 transition-all text-base leading-relaxed"
+                    disabled={loading}
                   />
+                </div>
+              </div>
 
+              <div className="flex items-center gap-4 text-slate-400">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-slate-200 dark:to-slate-800"></div>
+                <span className="text-[10px] font-bold tracking-widest uppercase">or upload sources</span>
+                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-slate-200 dark:to-slate-800"></div>
+              </div>
+
+              {/* File Dropzone */}
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className={`relative group/dropzone w-full p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${files.length > 0 ? 'border-primary bg-primary/5' : 'border-slate-200 dark:border-slate-800 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept=".txt,.md,.pdf"
+                  multiple
+                />
+
+                <AnimatePresence mode="wait">
                   {files.length > 0 ? (
-                    <div className="w-full space-y-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                          Uploaded Files ({files.length})
-                        </p>
+                    <motion.div
+                      key="files-list"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="w-full space-y-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Selected Documents ({files.length})</p>
                         <button
                           onClick={(e) => { e.stopPropagation(); clearFiles(); }}
-                          className="text-xs text-red-500 hover:text-red-600 font-medium"
+                          className="text-[10px] font-bold text-red-500 hover:text-red-600 transition-colors uppercase tracking-widest"
                         >
-                          Clear All
+                          Remove All
                         </button>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {files.map((file, index) => (
-                          <div
+                          <motion.div
+                            layout
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
                             key={`${file.name}-${index}`}
-                            className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm group/file"
+                            className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm group/file relative"
                           >
-                            <FileText className="w-8 h-8 text-indigo-500 flex-shrink-0" />
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                              <FileText className="w-4 h-4 text-primary" />
+                            </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-slate-900 dark:text-white text-xs truncate">
+                              <p className="font-bold text-slate-900 dark:text-white text-[11px] truncate">
                                 {file.name}
-                              </p>
-                              <p className="text-[10px] text-slate-500">
-                                {(file.size / 1024).toFixed(1)} KB
                               </p>
                             </div>
                             <button
                               onClick={(e) => { e.stopPropagation(); removeFile(index); }}
-                              className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 rounded-md transition-colors"
+                              className="p-1 text-slate-400 hover:text-red-500 transition-colors"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                               </svg>
                             </button>
-                          </div>
+                          </motion.div>
                         ))}
                       </div>
-                      <div className="pt-2 text-center">
-                        <p className="text-[10px] text-slate-400">Click to add more files</p>
-                      </div>
-                    </div>
+                    </motion.div>
                   ) : (
-                    <div className="text-center space-y-2">
-                      <Upload className="w-8 h-8 text-slate-400 mx-auto" />
-                      <p className="font-medium text-slate-700 dark:text-slate-200 text-sm">Add PDF, TXT, or MD files</p>
-                      <p className="text-xs text-slate-500">You can select multiple files at once</p>
-                    </div>
+                    <motion.div
+                      key="upload-prompt"
+                      className="text-center space-y-3"
+                    >
+                      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto group-hover/dropzone:scale-110 group-hover/dropzone:bg-primary/10 transition-all duration-300">
+                        <Upload className="w-6 h-6 text-slate-400 group-hover/dropzone:text-primary transition-colors" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">Upload Material</p>
+                        <p className="text-[10px] text-slate-500 font-medium">PDF, TXT, or Markdown supported</p>
+                      </div>
+                    </motion.div>
                   )}
-                </div>
+                </AnimatePresence>
               </div>
             </div>
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="p-4 bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl text-xs font-bold border border-red-500/20 flex items-center gap-3"
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                {error}
+              </motion.div>
+            )}
+
+            <button
+              onClick={handleGenerate}
+              disabled={loading || (!text && files.length === 0)}
+              className="w-full relative group/btn overflow-hidden py-4.5 bg-primary text-white rounded-2xl font-bold text-lg shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] flex items-center justify-center gap-3"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_100%] animate-gradient-x group-hover:opacity-100 opacity-0 transition-opacity" />
+              <span className="relative z-10 flex items-center gap-2">
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Synthesizing Knowledge...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Generate Study Kit
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </span>
+            </button>
           </div>
 
-          {error && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm border border-red-100 dark:border-red-900/50 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-              {error}
-            </div>
-          )}
-
-          <button
-            onClick={handleGenerate}
-            disabled={loading || (!text && files.length === 0)}
-            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] flex items-center justify-center gap-2 group"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Generating Study Kit...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                Generate Study Kit
-              </>
+          <AnimatePresence>
+            {result && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="mt-12"
+              >
+                <StudyKit data={result} />
+              </motion.div>
             )}
-          </button>
-
-          {result && <StudyKit data={result} />}
-        </div>
+          </AnimatePresence>
+        </motion.div>
       </main>
 
       {context && (
