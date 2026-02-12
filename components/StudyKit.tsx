@@ -8,6 +8,7 @@ import {
     VolumeX, Share2, Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -327,6 +328,15 @@ function QuizComponent({ questions }: { questions: QuizQuestion[] }) {
         });
         setScore(newScore);
         setSubmitted(true);
+
+        if (newScore === questions.length) {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#4f46e5', '#8b5cf6', '#10b981']
+            });
+        }
     };
 
     const handleRetry = () => {

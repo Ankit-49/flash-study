@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Sparkles, Loader2, Zap, Upload, FileText, ChevronRight } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Sparkles, Loader2, Zap, Upload, FileText, ChevronRight, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import StudyKit, { StudyKitData } from '@/components/StudyKit';
 import ChatInterface from '@/components/ChatInterface';
 import ThemeToggle from '@/components/ThemeToggle';
+import HistorySidebar from '@/components/HistorySidebar';
 
 export default function Home() {
   const [text, setText] = useState('');
@@ -15,7 +16,30 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [context, setContext] = useState<string>('');
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadingSteps = [
+    "Analyzing your materials...",
+    "Extracting core semantic units...",
+    "Synthesizing structured summaries...",
+    "Building interactive visual map...",
+    "Generating self-assessment quiz...",
+    "Finalizing your premium Study Kit..."
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      interval = setInterval(() => {
+        setLoadingStep((prev) => (prev + 1) % loadingSteps.length);
+      }, 3000);
+    } else {
+      setLoadingStep(0);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -65,7 +89,10 @@ export default function Home() {
         throw new Error(data.error || 'Something went wrong');
       }
 
-      setResult(data.result);
+      if (data.result) {
+        setResult(data.result);
+        saveToHistory(data.result);
+      }
       if (data.context) {
         setContext(data.context);
       }
@@ -76,12 +103,31 @@ export default function Home() {
     }
   };
 
+  const saveToHistory = (data: StudyKitData) => {
+    const saved = localStorage.getItem('study_history');
+    const history = saved ? JSON.parse(saved) : [];
+    const newItem = {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      title: data.summary.substring(0, 40) + "...",
+      data
+    };
+    localStorage.setItem('study_history', JSON.stringify([newItem, ...history].slice(0, 20)));
+  };
+
   return (
     <div className="flex min-h-screen relative overflow-hidden bg-background">
       {/* Background Mesh Gradient */}
       <div className="theme-gradient" />
 
-      <div className="fixed top-6 right-6 z-50">
+      <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
+        <button
+          onClick={() => setIsHistoryOpen(true)}
+          className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary transition-all shadow-sm"
+          title="Study History"
+        >
+          <History className="w-5 h-5" />
+        </button>
         <ThemeToggle />
       </div>
 
@@ -243,10 +289,20 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_100%] animate-gradient-x group-hover:opacity-100 opacity-0 transition-opacity" />
               <span className="relative z-10 flex items-center gap-2">
                 {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Synthesizing Knowledge...
-                  </>
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Processing...</span>
+                    </div>
+                    <motion.p
+                      key={loadingStep}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-[10px] font-medium text-white/70 uppercase tracking-widest"
+                    >
+                      {loadingSteps[loadingStep]}
+                    </motion.p>
+                  </div>
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5" />
@@ -271,6 +327,11 @@ export default function Home() {
             )}
           </AnimatePresence>
         </motion.div>
+        <HistorySidebar
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          onSelect={(data: StudyKitData) => setResult(data)}
+        />
       </main>
 
       {context && (
