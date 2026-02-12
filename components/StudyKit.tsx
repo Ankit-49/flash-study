@@ -275,7 +275,7 @@ export default function StudyKit({ data }: StudyKitProps) {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="w-full glass-panel rounded-[3rem] p-8 sm:p-12 bg-white/40 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800"
+                    className="w-full glass-panel rounded-[2rem] sm:rounded-[3rem] p-4 sm:p-12 bg-white/40 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800"
                 >
                     <MermaidChart chart={data.mindMap} />
                 </motion.div>

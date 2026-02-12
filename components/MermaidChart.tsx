@@ -25,10 +25,9 @@ export default function MermaidChart({ chart }: MermaidChartProps) {
                 tertiaryColor: '#f1f5f9',
             },
             flowchart: {
-                useMaxWidth: false,
+                useMaxWidth: true,
                 htmlLabels: true,
                 curve: 'basis',
-                padding: 40
             },
         });
 
@@ -42,7 +41,7 @@ export default function MermaidChart({ chart }: MermaidChartProps) {
     const cleanChart = chart.replace(/\\n/g, '\n').replace(/&/g, 'and').trim();
 
     return (
-        <div className="w-full flex justify-start items-start py-10 px-4 overflow-x-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-transparent min-h-[300px]">
+        <div className="w-full flex justify-start items-start py-6 sm:py-10 px-2 sm:px-4 overflow-x-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-transparent min-h-[300px] touch-pan-x">
             <div
                 ref={ref}
                 className="mermaid transition-opacity duration-500 opacity-100 mx-auto"
