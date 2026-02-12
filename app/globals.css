@@ -5,14 +5,14 @@
   --background: #f8fafc;
   --foreground: #0f172a;
 
-  /* Gradient Colors - Light Mode */
-  --gradient-from: #e0e7ff;
-  /* indigo-100 */
-  --gradient-via: #ffffff;
-  --gradient-to: #ffffff;
+  /* Premium Palette */
+  --primary: #4f46e5;
+  --primary-glow: rgba(79, 70, 229, 0.15);
+  --secondary: #9333ea;
+  --accent: #06b6d4;
 
-  --card-bg: #ffffff;
-  --card-border: #e2e8f0;
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --card-border: rgba(226, 232, 240, 0.8);
 
   color-scheme: light;
 }
@@ -21,15 +21,13 @@
   --background: #020617;
   --foreground: #f8fafc;
 
-  /* Gradient Colors - Dark Mode */
-  --gradient-from: #0f172a;
-  /* slate-900 */
-  --gradient-via: #020617;
-  /* slate-950 */
-  --gradient-to: #000000;
+  --primary: #818cf8;
+  --primary-glow: rgba(129, 140, 248, 0.1);
+  --secondary: #a855f7;
+  --accent: #22d3ee;
 
-  --card-bg: #0f172a;
-  --card-border: #1e293b;
+  --card-bg: rgba(15, 23, 42, 0.6);
+  --card-border: rgba(30, 41, 59, 0.5);
 
   color-scheme: dark;
 }
@@ -39,6 +37,9 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card-bg);
   --color-border: var(--card-border);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -51,11 +52,48 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Premium Glassmorphism */
+.glass-panel {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
 .theme-gradient {
-  background-image: radial-gradient(ellipse at top, var(--gradient-from), var(--gradient-via), var(--gradient-to));
-  transition: all 0.5s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background: radial-gradient(circle at 0% 0%, var(--primary-glow) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, var(--primary-glow) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* High-end Animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }
