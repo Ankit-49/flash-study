@@ -26,6 +26,10 @@ For the provided text, generate a valid JSON object with the following structure
         "correctOptionIndex": 2
     }
   ],
+  "podcast": [
+    { "role": "Tutor", "content": "Introduction to the topic." },
+    { "role": "Student", "content": "Question or reaction." }
+  ],
   "mindMap": "A CLEAR Mermaid.js graph LR (horizontal) diagram. Use 'graph LR' ONLY. Ensure nodes are short. Avoid deep nesting. CRITICAL: DO NOT use any LaTeX or special math symbols inside Mermaid nodes as they will break the diagram."
 }
 
@@ -36,7 +40,8 @@ CRITICAL INSTRUCTION FOR MATH AND JSON:
 - Example: Write '$E = mc ^ 2$' for inline math.
 - Example: Write '$$...$$' for block math.
 - DO NOT output plain text formulas like 'epsilon0'. Use '$\\\\epsilon_0$'.
-- You MUST include ALL fields in the JSON object: "summary", "analogies", "keyTerms", "quiz", and "mindMap".
+- You MUST include ALL fields in the JSON object: "summary", "analogies", "keyTerms", "quiz", "mindMap", and "podcast".
+- The "podcast" should be a 6-8 turn dialogue between a "Tutor" (expert, encouraging) and a "Student" (curious, asks clarifying questions).
 - NEVER omit any field, even for large documents.
 - Ensure the "quiz" contains exactly 3 diverse multiple-choice questions.
 - Ensure the "mindMap" is a complete Mermaid.js graph.
