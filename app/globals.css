@@ -79,6 +79,16 @@ body {
   pointer-events: none;
 }
 
+/* Scrollbar Hiding Utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* High-end Animations */
 @keyframes float {
   0% {

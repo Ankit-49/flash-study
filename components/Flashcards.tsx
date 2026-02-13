@@ -1,23 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import { StudyKitData } from './StudyKit';
 
 interface QuizQuestion {
     question: string;
     options: string[];
     correctOptionIndex: number;
+    srsBox?: number;
+    nextReviewDate?: number;
 }
 
 interface FlashcardsProps {
     questions: QuizQuestion[];
+    data?: StudyKitData;
+    onUpdate?: (data: StudyKitData) => void;
 }
 
-export default function Flashcards({ questions }: FlashcardsProps) {
+export default function Flashcards({ questions, data, onUpdate }: FlashcardsProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [direction, setDirection] = useState(0);
@@ -36,6 +41,53 @@ export default function Flashcards({ questions }: FlashcardsProps) {
 
     const handleFlip = () => {
         setIsFlipped(!isFlipped);
+    };
+
+    const handleResponse = (isCorrect: boolean, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (!data || !onUpdate) {
+            handleNext();
+            return;
+        }
+
+        const currentQ = questions[currentIndex];
+        const currentBox = currentQ.srsBox || 0;
+
+        let newBox = 1;
+        let daysToAdd = 1;
+
+        if (isCorrect) {
+            newBox = Math.min(currentBox + 1, 5);
+            // Leitner intervals
+            switch (newBox) {
+                case 1: daysToAdd = 1; break;
+                case 2: daysToAdd = 3; break;
+                case 3: daysToAdd = 7; break;
+                case 4: daysToAdd = 14; break;
+                case 5: daysToAdd = 30; break;
+            }
+        } else {
+            newBox = 1;
+            daysToAdd = 1;
+        }
+
+        const nextReview = Date.now() + (daysToAdd * 24 * 60 * 60 * 1000);
+
+        // Update Data
+        const newData = { ...data };
+        if (newData.quiz && newData.quiz[currentIndex]) {
+            newData.quiz[currentIndex] = {
+                ...newData.quiz[currentIndex],
+                srsBox: newBox,
+                nextReviewDate: nextReview,
+                lastReviewed: Date.now()
+            };
+            onUpdate(newData);
+        }
+
+        // Move to next card
+        handleNext();
     };
 
     const currentQuestion = questions[currentIndex];
@@ -64,8 +116,10 @@ export default function Flashcards({ questions }: FlashcardsProps) {
                             style={{ backfaceVisibility: 'hidden' }}
                         >
                             <div className="absolute top-6 left-8 flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Question {currentIndex + 1}</span>
+                                <div className={`w-1.5 h-1.5 rounded-full ${currentQuestion.srsBox && currentQuestion.srsBox > 1 ? 'bg-green-500' : 'bg-primary'}`} />
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                    {currentQuestion.srsBox ? `Box ${currentQuestion.srsBox}` : 'New Card'}
+                                </span>
                             </div>
 
                             <div className="prose dark:prose-invert max-w-none text-lg font-bold text-slate-800 dark:text-slate-100 leading-snug">
@@ -88,7 +142,7 @@ export default function Flashcards({ questions }: FlashcardsProps) {
 
                         {/* Back Face */}
                         <motion.div
-                            className="absolute inset-0 backface-hidden glass-panel rounded-3xl p-10 flex flex-col items-center justify-center text-center bg-primary/5 dark:bg-primary/10 shadow-2xl border-2 border-primary/30"
+                            className="absolute inset-0 backface-hidden glass-panel rounded-3xl p-8 flex flex-col items-center justify-center text-center bg-primary/5 dark:bg-primary/10 shadow-2xl border-2 border-primary/30"
                             style={{
                                 backfaceVisibility: 'hidden',
                                 transform: 'rotateY(180deg)'
@@ -99,13 +153,29 @@ export default function Flashcards({ questions }: FlashcardsProps) {
                                 <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Verification</span>
                             </div>
 
-                            <div className="prose dark:prose-invert max-w-none text-xl font-black text-primary leading-snug">
+                            <div className="prose dark:prose-invert max-w-none text-xl font-black text-primary leading-snug mb-8">
                                 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                                     {currentQuestion.options[currentQuestion.correctOptionIndex]}
                                 </ReactMarkdown>
                             </div>
 
-                            <p className="absolute bottom-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-50">Tap to Flip Back</p>
+                            {/* SRS Controls */}
+                            <div className="flex gap-4 w-full px-4" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                    onClick={(e) => handleResponse(false, e)}
+                                    className="flex-1 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors border border-red-200 dark:border-red-900/30 flex flex-col items-center gap-1"
+                                >
+                                    <X className="w-4 h-4" />
+                                    <span>Needs Practice</span>
+                                </button>
+                                <button
+                                    onClick={(e) => handleResponse(true, e)}
+                                    className="flex-1 py-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors border border-green-200 dark:border-green-900/30 flex flex-col items-center gap-1"
+                                >
+                                    <Check className="w-4 h-4" />
+                                    <span>Got It</span>
+                                </button>
+                            </div>
                         </motion.div>
                     </motion.div>
                 </AnimatePresence>

@@ -22,9 +22,14 @@ interface QuizQuestion {
     question: string;
     options: string[];
     correctOptionIndex: number;
+    // SRS Data
+    srsBox?: number; // 1-5 (Leitner System)
+    nextReviewDate?: number; // Timestamp
+    lastReviewed?: number; // Timestamp
 }
 
 export interface StudyKitData {
+    id?: string;
     summary: string;
     analogies: string[];
     keyTerms: { term: string; definition: string }[];
@@ -36,6 +41,7 @@ export interface StudyKitData {
 interface StudyKitProps {
     data: StudyKitData;
     onExplore?: (term: string) => void;
+    onUpdate?: (data: StudyKitData) => void;
 }
 
 interface Section {
@@ -46,7 +52,7 @@ interface Section {
     color: string;
 }
 
-export default function StudyKit({ data, onExplore }: StudyKitProps) {
+export default function StudyKit({ data, onExplore, onUpdate }: StudyKitProps) {
     const [viewMode, setViewMode] = useState<'quiz' | 'flashcards'>('quiz');
     const [activeTab, setActiveTab] = useState('summary');
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -449,7 +455,7 @@ export default function StudyKit({ data, onExplore }: StudyKitProps) {
                     </div>
 
                     <div className="mt-8">
-                        {viewMode === 'quiz' ? <QuizComponent questions={data.quiz} /> : <Flashcards questions={data.quiz} />}
+                        {viewMode === 'quiz' ? <QuizComponent questions={data.quiz} /> : <Flashcards questions={data.quiz} data={data} onUpdate={onUpdate} />}
                     </div>
                 </motion.div>
             )

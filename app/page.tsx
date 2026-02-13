@@ -7,6 +7,7 @@ import StudyKit, { StudyKitData } from '@/components/StudyKit';
 import ChatInterface from '@/components/ChatInterface';
 import ThemeToggle from '@/components/ThemeToggle';
 import HistorySidebar from '@/components/HistorySidebar';
+import SRSDashboard from '@/components/SRSDashboard';
 
 export default function Home() {
   const [text, setText] = useState('');
@@ -17,6 +18,7 @@ export default function Home() {
   const [context, setContext] = useState<string>('');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [streak, setStreak] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -176,13 +178,40 @@ export default function Home() {
   const saveToHistory = (data: StudyKitData) => {
     const saved = localStorage.getItem('study_history');
     const history = saved ? JSON.parse(saved) : [];
+    const id = Date.now().toString();
+
+    // Assign ID to data for tracking
+    const dataWithId = { ...data, id };
+
     const newItem = {
-      id: Date.now().toString(),
+      id,
       timestamp: Date.now(),
       title: data.summary.substring(0, 40) + "...",
-      data
+      data: dataWithId
     };
+
+    // Update result with ID so subsequent updates work
+    setResult(dataWithId);
+
     localStorage.setItem('study_history', JSON.stringify([newItem, ...history].slice(0, 20)));
+  };
+
+  const handleUpdateKit = (updatedData: StudyKitData) => {
+    setResult(updatedData);
+
+    const saved = localStorage.getItem('study_history');
+    if (saved) {
+      const history = JSON.parse(saved);
+      if (updatedData.id) {
+        const index = history.findIndex((h: any) => h.id === updatedData.id);
+        if (index !== -1) {
+          history[index].data = updatedData;
+          // Don't update timestamp here to avoid reordering unless we want to "bump" it
+          // history[index].timestamp = Date.now(); 
+          localStorage.setItem('study_history', JSON.stringify(history));
+        }
+      }
+    }
   };
 
   return (
@@ -202,6 +231,16 @@ export default function Home() {
             <span>{streak}</span>
           </motion.div>
         )}
+        <button
+          onClick={() => setIsDashboardOpen(true)}
+          className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary transition-all shadow-sm"
+          title="SRS Dashboard"
+        >
+          <div className="relative">
+            <Zap className="w-5 h-5" />
+            {/* Simple dot indicator if desired, logic would be complex here without prop */}
+          </div>
+        </button>
         <button
           onClick={() => setIsHistoryOpen(true)}
           className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary transition-all shadow-sm"
@@ -422,7 +461,7 @@ export default function Home() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="mt-12"
               >
-                <StudyKit data={result} onExplore={handleDeepDive} />
+                <StudyKit data={result} onExplore={handleDeepDive} onUpdate={handleUpdateKit} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -430,6 +469,11 @@ export default function Home() {
         <HistorySidebar
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
+          onSelect={(data: StudyKitData) => setResult(data)}
+        />
+        <SRSDashboard
+          isOpen={isDashboardOpen}
+          onClose={() => setIsDashboardOpen(false)}
           onSelect={(data: StudyKitData) => setResult(data)}
         />
       </main>
