@@ -15,6 +15,8 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import Flashcards from './Flashcards';
 import MermaidChart from './MermaidChart';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface QuizQuestion {
     question: string;
@@ -119,6 +121,46 @@ export default function StudyKit({ data }: StudyKitProps) {
         const a = document.createElement('a');
         a.href = url;
         a.download = `StudyKit-${Date.now()}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleExportPDF = async () => {
+        const element = document.getElementById('study-kit-content');
+        if (!element) return;
+
+        const canvas = await html2canvas(element, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: null
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`StudyKit-${Date.now()}.pdf`);
+    };
+
+    const handleExportAnki = () => {
+        let csv = "Question,Answer\n";
+        data.quiz.forEach(q => {
+            const question = `"${q.question.replace(/"/g, '""')}"`;
+            const answer = `"${q.options[q.correctOptionIndex].replace(/"/g, '""')}"`;
+            csv += `${question},${answer}\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Anki-Flashcards-${Date.now()}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -307,13 +349,30 @@ export default function StudyKit({ data }: StudyKitProps) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <button
                         onClick={handleExportMarkdown}
-                        className="flex items-center gap-2.5 px-6 py-3.5 text-xs font-black text-white bg-primary hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] rounded-2xl transition-all active:scale-95 uppercase tracking-widest shadow-lg"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-black text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl transition-all active:scale-95 uppercase tracking-widest"
+                        title="Export as Markdown"
                     >
-                        <Download className="w-4 h-4" />
-                        Export .MD
+                        <FileText className="w-3.5 h-3.5" />
+                        .MD
+                    </button>
+                    <button
+                        onClick={handleExportPDF}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-black text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl transition-all active:scale-95 uppercase tracking-widest"
+                        title="Export as PDF"
+                    >
+                        <Printer className="w-3.5 h-3.5" />
+                        PDF
+                    </button>
+                    <button
+                        onClick={handleExportAnki}
+                        className="flex items-center gap-2.5 px-6 py-3.5 text-xs font-black text-white bg-primary hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] rounded-2xl transition-all active:scale-95 uppercase tracking-widest shadow-lg"
+                        title="Export for Anki"
+                    >
+                        <Layers className="w-4 h-4" />
+                        Anki CSV
                     </button>
                 </div>
             </motion.div>
@@ -340,7 +399,7 @@ export default function StudyKit({ data }: StudyKitProps) {
             </div>
 
             {/* Animated Tab Content */}
-            <div className="relative min-h-[400px]">
+            <div id="study-kit-content" className="relative min-h-[400px]">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={activeTab}
