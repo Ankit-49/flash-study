@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     try {
         let text = '';
-
+        let imageParts: any[] = [];
         const contentType = request.headers.get('content-type') || '';
 
         if (contentType.includes('multipart/form-data')) {
@@ -64,76 +64,69 @@ export async function POST(request: Request) {
             const files = formData.getAll('file') as File[];
             const plainText = formData.get('text') as string | null;
 
-            let combinedText = '';
-
-            if (plainText) {
-                combinedText += plainText;
-            }
+            if (plainText) text += plainText;
 
             for (const file of files) {
-                if (file) {
-                    console.log(`Processing file: ${file.name} (${file.type})`);
-                    const buffer = Buffer.from(await file.arrayBuffer());
+                if (!file) continue;
+                console.log(`Processing file: ${file.name} (${file.type})`);
+                const buffer = Buffer.from(await file.arrayBuffer());
+
+                if (file.type.startsWith('image/')) {
+                    imageParts.push({
+                        inlineData: {
+                            data: buffer.toString('base64'),
+                            mimeType: file.type
+                        }
+                    });
+                } else if (file.type === 'application/pdf') {
+                    // Use createRequire to bypass ESM/CJS interop issues with pdf-parse
+                    const { createRequire } = await import('module');
+                    const require = createRequire(import.meta.url);
+
+                    // Polyfill DOMMatrix, Path2D, etc. for pdfjs-dist@5 (used by pdf-parse)
+                    const canvas = require('@napi-rs/canvas');
+                    if (typeof global !== 'undefined') {
+                        (global as any).DOMMatrix = canvas.DOMMatrix;
+                        (global as any).Path2D = canvas.Path2D;
+                        (global as any).DOMPoint = canvas.DOMPoint;
+                    }
+
+                    let pdfParse = require('pdf-parse');
+                    if (typeof pdfParse !== 'function' && typeof pdfParse.default === 'function') {
+                        pdfParse = pdfParse.default;
+                    }
+
                     let fileText = '';
-
-                    if (file.type === 'application/pdf') {
-                        // Use createRequire to bypass ESM/CJS interop issues with pdf-parse
-                        const { createRequire } = await import('module');
-                        const require = createRequire(import.meta.url);
-
-                        // Polyfill DOMMatrix, Path2D, etc. for pdfjs-dist@5 (used by pdf-parse)
-                        const canvas = require('@napi-rs/canvas');
-                        if (typeof global !== 'undefined') {
-                            (global as any).DOMMatrix = canvas.DOMMatrix;
-                            (global as any).Path2D = canvas.Path2D;
-                            (global as any).DOMPoint = canvas.DOMPoint;
-                        }
-
-                        let pdfParse = require('pdf-parse');
-
-                        if (typeof pdfParse !== 'function' && typeof pdfParse.default === 'function') {
-                            pdfParse = pdfParse.default;
-                        }
-
-                        if (typeof pdfParse === 'function') {
-                            // Legacy function-based API or correctly resolved default export
-                            const pdfData = await pdfParse(buffer);
-                            fileText = pdfData.text;
-                        } else if (typeof pdfParse === 'object' && pdfParse.PDFParse) {
-                            // New class-based API in version 2.4.5+
-                            const parser = new pdfParse.PDFParse({ data: buffer });
-                            const result = await parser.getText();
-                            fileText = result.text;
-                        } else {
-                            console.error('pdf-parse export type:', typeof pdfParse);
-                            console.error('pdf-parse export keys:', Object.keys(pdfParse || {}));
-                            throw new Error(`pdf-parse library parsing failed: exported value is not a function or compatible class (type: ${typeof pdfParse})`);
-                        }
-                    } else {
-                        // Assume text-based file (txt, md, js, etc.)
-                        fileText = buffer.toString('utf-8');
+                    if (typeof pdfParse === 'function') {
+                        const pdfData = await pdfParse(buffer);
+                        fileText = pdfData.text;
+                    } else if (typeof pdfParse === 'object' && pdfParse.PDFParse) {
+                        const parser = new pdfParse.PDFParse({ data: buffer });
+                        const result = await parser.getText();
+                        fileText = result.text;
                     }
 
-                    if (combinedText) {
-                        combinedText += `\n\n--- ADDITIONAL CONTENT FROM UPLOADED FILE: ${file.name} ---\n\n`;
+                    if (fileText) {
+                        if (text) text += `\n\n--- CONTENT FROM: ${file.name} ---\n\n`;
+                        text += fileText;
                     }
-                    combinedText += fileText;
+                } else {
+                    // Assume text-based file
+                    const fileText = buffer.toString('utf-8');
+                    if (fileText) {
+                        if (text) text += `\n\n--- CONTENT FROM: ${file.name} ---\n\n`;
+                        text += fileText;
+                    }
                 }
             }
-
-            if (!combinedText.trim()) {
-                return NextResponse.json({ error: 'No content found to analyze' }, { status: 400 });
-            }
-
-            text = combinedText;
         } else {
             const json = await request.json();
             text = json.text;
         }
 
-        if (!text || text.length < 50) {
+        if ((!text || text.length < 50) && imageParts.length === 0) {
             return NextResponse.json(
-                { error: 'Please provide at least 50 characters of content or a valid file.' },
+                { error: 'Please provide at least 50 characters of content or a valid file/image.' },
                 { status: 400 }
             );
         }
@@ -143,14 +136,14 @@ export async function POST(request: Request) {
         let result;
         let lastError;
 
-        // Truncate text if it's too long (Gemini Flash has a large context window, but let's be safe)
+        // Truncate text if it's too long
         const maxLength = 100000;
         if (text.length > maxLength) {
             console.log(`Truncating input text from ${text.length} to ${maxLength} chars`);
             text = text.substring(0, maxLength);
         }
 
-        const prompt = `${systemPrompt}\n\nContent to analyze:\n${text}`;
+        const prompt = `${systemPrompt}\n\nContent to analyze (including any uploaded visual material):\n${text}`;
 
         console.log('Generating content with Gemini...');
 
@@ -161,13 +154,16 @@ export async function POST(request: Request) {
                 const model = genAI.getGenerativeModel({
                     model: modelName,
                     generationConfig: {
-                        temperature: 0.2, // Lower temperature for more consistent JSON
-                        maxOutputTokens: 8192, // Increased limit to prevent truncation of large JSON
+                        temperature: 0.2,
+                        maxOutputTokens: 16384,
                         responseMimeType: (modelName.includes('1.5') || modelName.includes('2.') || isFlashLatest) ? "application/json" : "text/plain"
                     }
                 });
 
-                result = await model.generateContent(prompt);
+                // Combine text prompt and image parts
+                const contentParts = [prompt, ...imageParts];
+                result = await model.generateContent(contentParts);
+
                 if (result && result.response) {
                     console.log(`Successfully generated with model: ${modelName}`);
                     break;

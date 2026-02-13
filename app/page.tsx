@@ -239,7 +239,7 @@ export default function Home() {
                   ref={fileInputRef}
                   onChange={handleFileChange}
                   className="hidden"
-                  accept=".txt,.md,.pdf"
+                  accept=".txt,.md,.pdf,image/*"
                   multiple
                 />
 
@@ -299,7 +299,7 @@ export default function Home() {
                       </div>
                       <div className="space-y-1">
                         <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">Upload Material</p>
-                        <p className="text-[10px] text-slate-500 font-medium">PDF, TXT, or Markdown supported</p>
+                        <p className="text-[10px] text-slate-500 font-medium">PDF, Image, TXT, or Markdown supported</p>
                       </div>
                     </motion.div>
                   )}
