@@ -375,6 +375,17 @@ export default function StudyKit({ data, onExplore }: StudyKitProps) {
                                 <ReactMarkdown components={{ p: ({ children }) => <span>{children}</span> }} remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
                                     {term.definition}
                                 </ReactMarkdown>
+
+                                {onExplore && (
+                                    <button
+                                        onClick={() => onExplore(term.term)}
+                                        className="mt-4 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors group/btn opacity-60 hover:opacity-100"
+                                        title="Generate new study kit for this concept"
+                                    >
+                                        <Search className="w-3 h-3 group-hover/btn:scale-110 transition-transform" />
+                                        Deep Dive
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -529,12 +540,12 @@ export default function StudyKit({ data, onExplore }: StudyKitProps) {
             </motion.div>
 
             {/* Premium Tab Navigation */}
-            <div className="flex items-center justify-center p-2 bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-2xl rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 shadow-inner w-full max-w-fit mx-auto sticky top-4 z-40">
+            <div className="flex items-center justify-start md:justify-center p-2 bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-2xl rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 shadow-inner w-full max-w-fit mx-auto sticky top-4 z-40 overflow-x-auto no-scrollbar">
                 {sections.map((section) => (
                     <button
                         key={section.id}
                         onClick={() => setActiveTab(section.id)}
-                        className={`relative flex items-center gap-2.5 px-6 py-3.5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${activeTab === section.id ? 'text-primary' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                        className={`relative flex items-center gap-2 px-4 md:px-6 py-3.5 rounded-[2rem] text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 whitespace-nowrap flex-shrink-0 ${activeTab === section.id ? 'text-primary' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
                     >
                         {activeTab === section.id && (
                             <motion.div
@@ -544,7 +555,7 @@ export default function StudyKit({ data, onExplore }: StudyKitProps) {
                             />
                         )}
                         <span className="relative z-10">{section.icon}</span>
-                        <span className="relative z-10 hidden sm:inline">{section.title}</span>
+                        <span className="relative z-10 hidden sm:inline ml-2">{section.title}</span>
                     </button>
                 ))}
             </div>
