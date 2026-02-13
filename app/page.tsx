@@ -129,6 +129,50 @@ export default function Home() {
     }
   };
 
+  const handleDeepDive = async (term: string) => {
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Set text to reflect deep dive
+    const deepDivePrompt = `Deep Dive Concept: ${term}. Provide a comprehensive study kit focusing specifically on this topic, including advanced details, analogies, and a specific quiz.`;
+    setText(deepDivePrompt);
+
+    // Trigger generation process manually
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setLoadingStep(0); // Reset steps
+
+    try {
+      // Create FormData with just the text
+      const formData = new FormData();
+      formData.append('text', deepDivePrompt);
+
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong');
+      }
+
+      if (data.result) {
+        setResult(data.result);
+        saveToHistory(data.result);
+      }
+      if (data.context) {
+        setContext(data.context);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate Deep Dive');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const saveToHistory = (data: StudyKitData) => {
     const saved = localStorage.getItem('study_history');
     const history = saved ? JSON.parse(saved) : [];
@@ -378,7 +422,7 @@ export default function Home() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="mt-12"
               >
-                <StudyKit data={result} />
+                <StudyKit data={result} onExplore={handleDeepDive} />
               </motion.div>
             )}
           </AnimatePresence>

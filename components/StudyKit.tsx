@@ -5,7 +5,7 @@ import {
     Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle,
     Network, Trophy, XCircle, CheckCircle, Layout, Layers,
     Tag, Download, FileText, Loader2, Sparkles, Volume2,
-    VolumeX, Share2, Printer, Eye, EyeOff, Headphones, Play, Pause, Mic
+    VolumeX, Share2, Printer, Eye, EyeOff, Headphones, Play, Pause, Mic, Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -35,6 +35,7 @@ export interface StudyKitData {
 
 interface StudyKitProps {
     data: StudyKitData;
+    onExplore?: (term: string) => void;
 }
 
 interface Section {
@@ -45,7 +46,7 @@ interface Section {
     color: string;
 }
 
-export default function StudyKit({ data }: StudyKitProps) {
+export default function StudyKit({ data, onExplore }: StudyKitProps) {
     const [viewMode, setViewMode] = useState<'quiz' | 'flashcards'>('quiz');
     const [activeTab, setActiveTab] = useState('summary');
     const [isSpeaking, setIsSpeaking] = useState(false);
