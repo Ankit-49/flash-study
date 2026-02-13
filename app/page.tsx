@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Loader2, Zap, Upload, FileText, ChevronRight, History, Check } from 'lucide-react';
+import { Sparkles, Loader2, Zap, Upload, FileText, ChevronRight, History, Check, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import StudyKit, { StudyKitData } from '@/components/StudyKit';
 import ChatInterface from '@/components/ChatInterface';
@@ -18,6 +18,7 @@ export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [streak, setStreak] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadingSteps = [
@@ -40,6 +41,31 @@ export default function Home() {
     }
     return () => clearInterval(interval);
   }, [loading]);
+
+  useEffect(() => {
+    // Streak Logic
+    const lastActive = localStorage.getItem('study_last_active');
+    const savedStreak = localStorage.getItem('study_streak');
+    const today = new Date().toDateString();
+
+    if (lastActive === today) {
+      setStreak(savedStreak ? parseInt(savedStreak) : 1);
+    } else {
+      const lastDate = lastActive ? new Date(lastActive) : null;
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      if (lastDate && lastDate.toDateString() === yesterday.toDateString()) {
+        const newStreak = (savedStreak ? parseInt(savedStreak) : 0) + 1;
+        setStreak(newStreak);
+        localStorage.setItem('study_streak', newStreak.toString());
+      } else {
+        setStreak(1);
+        localStorage.setItem('study_streak', '1');
+      }
+      localStorage.setItem('study_last_active', today);
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -121,6 +147,17 @@ export default function Home() {
       <div className="theme-gradient" />
 
       <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
+        {streak > 0 && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 font-black text-sm shadow-sm"
+            title="Study Streak"
+          >
+            <Flame className="w-4 h-4 fill-current animate-pulse" />
+            <span>{streak}</span>
+          </motion.div>
+        )}
         <button
           onClick={() => setIsHistoryOpen(true)}
           className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary transition-all shadow-sm"

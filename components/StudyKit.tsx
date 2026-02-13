@@ -5,7 +5,7 @@ import {
     Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle,
     Network, Trophy, XCircle, CheckCircle, Layout, Layers,
     Tag, Download, FileText, Loader2, Sparkles, Volume2,
-    VolumeX, Share2, Printer
+    VolumeX, Share2, Printer, Eye, EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -50,6 +50,7 @@ export default function StudyKit({ data }: StudyKitProps) {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [speakingTextId, setSpeakingTextId] = useState<string | null>(null);
     const [charIndex, setCharIndex] = useState(0);
+    const [isFocusMode, setIsFocusMode] = useState(false);
     const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
     if (!data) return null;
@@ -340,16 +341,31 @@ export default function StudyKit({ data }: StudyKitProps) {
                         <div className="absolute inset-0 bg-primary/20 scale-0 group-hover:scale-110 transition-transform duration-500" />
                         <Sparkles className="w-8 h-8 text-primary relative z-10" />
                     </div>
-                    <div>
-                        <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Interactive Knowledge OS</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Ready for exploration</p>
-                        </div>
-                    </div>
+                    {!isFocusMode && (
+                        <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -10 }}
+                        >
+                            <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Interactive Knowledge OS</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Ready for exploration</p>
+                            </div>
+                        </motion.div>
+                    )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        onClick={() => setIsFocusMode(!isFocusMode)}
+                        className={`flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-black rounded-xl transition-all active:scale-95 uppercase tracking-widest ${isFocusMode ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}
+                        title={isFocusMode ? "Disable Focus Mode" : "Enable Focus Mode"}
+                    >
+                        {isFocusMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {isFocusMode ? 'Focus On' : 'Focus Mode'}
+                    </button>
+                    <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block" />
                     <button
                         onClick={handleExportMarkdown}
                         className="flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-black text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl transition-all active:scale-95 uppercase tracking-widest"
