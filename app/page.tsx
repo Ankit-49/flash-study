@@ -461,7 +461,7 @@ export default function Home() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="mt-12"
               >
-                <StudyKit data={result} onExplore={handleDeepDive} onUpdate={handleUpdateKit} />
+                <StudyKit data={result} context={context} onExplore={handleDeepDive} onUpdate={handleUpdateKit} />
               </motion.div>
             )}
           </AnimatePresence>

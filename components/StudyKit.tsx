@@ -5,7 +5,8 @@ import {
     Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle,
     Network, Trophy, XCircle, CheckCircle, Layout, Layers,
     Tag, Download, FileText, Loader2, Sparkles, Volume2,
-    VolumeX, Share2, Printer, Eye, EyeOff, Play, Pause, Search, Lightbulb
+    VolumeX, Share2, Printer, Eye, EyeOff, Play, Pause, Search, Lightbulb,
+    Edit3, Send, MessageSquare, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -34,12 +35,14 @@ export interface StudyKitData {
     analogies: string[];
     keyTerms: { term: string; definition: string }[];
     mnemonics: { concept: string; mnemonic: string; type: string }[];
+    reflectionQuestions: string[];
     quiz: QuizQuestion[];
     mindMap: string;
 }
 
 interface StudyKitProps {
     data: StudyKitData;
+    context?: string;
     onExplore?: (term: string) => void;
     onUpdate?: (data: StudyKitData) => void;
 }
@@ -52,7 +55,7 @@ interface Section {
     color: string;
 }
 
-export default function StudyKit({ data, onExplore, onUpdate }: StudyKitProps) {
+export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKitProps) {
     const [viewMode, setViewMode] = useState<'quiz' | 'flashcards'>('quiz');
     const [activeTab, setActiveTab] = useState('summary');
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -122,6 +125,12 @@ export default function StudyKit({ data, onExplore, onUpdate }: StudyKitProps) {
         md += `## Mnemonics\n`;
         data.mnemonics?.forEach(m => {
             md += `- **${m.concept}** (${m.type}): ${m.mnemonic}\n`;
+        });
+        md += `\n`;
+
+        md += `## Reflection Questions\n`;
+        data.reflectionQuestions?.forEach(q => {
+            md += `- ${q}\n`;
         });
         md += `\n`;
 
@@ -337,6 +346,15 @@ export default function StudyKit({ data, onExplore, onUpdate }: StudyKitProps) {
                         </div>
                     ))}
                 </motion.div>
+            )
+        },
+        {
+            id: 'reflection',
+            title: 'Deep Recall',
+            color: 'rose',
+            icon: <Edit3 className="w-4 h-4" />,
+            content: (
+                <ReflectionComponent questions={data.reflectionQuestions} context={context || data.summary} />
             )
         },
         {
@@ -625,6 +643,122 @@ function QuizComponent({ questions }: { questions: QuizQuestion[] }) {
                 </motion.div>
             )}
         </div>
+    );
+}
+
+function ReflectionComponent({ questions, context }: { questions: string[], context: string }) {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [answer, setAnswer] = useState('');
+    const [grading, setGrading] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
+
+    const handleGrade = async () => {
+        if (!answer.trim() || loading) return;
+        setLoading(true);
+        setGrading(null);
+
+        try {
+            const res = await fetch('/api/grade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    question: questions[currentIndex],
+                    answer: answer,
+                    context: context
+                })
+            });
+            const data = await res.json();
+            setGrading(data);
+        } catch (e) {
+            console.error('Failed to grade', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const nextQuestion = () => {
+        setGrading(null);
+        setAnswer('');
+        setCurrentIndex((prev) => (prev + 1) % questions.length);
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-3xl mx-auto space-y-8"
+        >
+            <div className="glass-panel rounded-[2.5rem] p-10 bg-white/40 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden relative">
+                <div className="absolute -right-12 -top-12 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl" />
+
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-rose-500/10 rounded-xl text-rose-600 dark:text-rose-400">
+                            <MessageSquare className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Reflection</span>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-400 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full">
+                        {currentIndex + 1} / {questions.length}
+                    </span>
+                </div>
+
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-tight mb-8">
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {questions[currentIndex]}
+                    </ReactMarkdown>
+                </h3>
+
+                <div className="relative group">
+                    <textarea
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        placeholder="Type your explanation here... Use the Feynman Technique!"
+                        className="w-full min-h-[180px] p-6 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all resize-none text-slate-700 dark:text-white"
+                        disabled={loading || !!grading}
+                    />
+                    {!grading && (
+                        <button
+                            onClick={handleGrade}
+                            disabled={!answer.trim() || loading}
+                            className="absolute bottom-4 right-4 px-6 py-3 bg-rose-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all disabled:opacity-50 disabled:scale-95 flex items-center gap-2"
+                        >
+                            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                            Grade My Answer
+                        </button>
+                    )}
+                </div>
+
+                <AnimatePresence>
+                    {grading && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-8 p-8 rounded-2xl bg-slate-900 dark:bg-black text-white border border-slate-800 shadow-2xl relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 p-6">
+                                <div className={`text-4xl font-black ${grading.score >= 80 ? 'text-green-500' : grading.score >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                    {grading.score}%
+                                </div>
+                            </div>
+
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">AI Feedback</h4>
+                            <p className="text-lg leading-relaxed font-medium mb-6">
+                                {grading.feedback}
+                            </p>
+
+                            <button
+                                onClick={nextQuestion}
+                                className="w-full py-4 bg-white/10 hover:bg-white/20 transition-colors rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2"
+                            >
+                                Next Question
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </motion.div>
     );
 }
 
