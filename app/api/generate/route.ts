@@ -24,6 +24,16 @@ For the provided text, generate a valid JSON object with the following structure
         "question": "Question text", 
         "options": ["Option A", "Option B", "Option C", "Option D"], 
         "correctOptionIndex": 2
+    },
+    { 
+        "question": "Question text", 
+        "options": ["Option A", "Option B", "Option C", "Option D"], 
+        "correctOptionIndex": 3
+    },
+    { 
+        "question": "Question text", 
+        "options": ["Option A", "Option B", "Option C", "Option D"], 
+        "correctOptionIndex": 4
     }
   ],
   "podcast": [
@@ -43,7 +53,7 @@ CRITICAL INSTRUCTION FOR MATH AND JSON:
 - You MUST include ALL fields in the JSON object: "summary", "analogies", "keyTerms", "quiz", "mindMap", and "podcast".
 - The "podcast" should be a 6-8 turn dialogue between a "Tutor" (expert, encouraging) and a "Student" (curious, asks clarifying questions).
 - NEVER omit any field, even for large documents.
-- Ensure the "quiz" contains exactly 3 diverse multiple-choice questions.
+- Ensure the "quiz" contains exactly 5 diverse multiple-choice questions.
 - Ensure the "mindMap" is a complete Mermaid.js graph.
 - Ensure the output is strictly valid JSON. Do not include markdown code blocks.`;
 
