@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Calendar, ChevronRight, X, Layers, Clock, CheckCircle, TrendingUp } from 'lucide-react';
+import { Brain, Calendar, ChevronRight, X, Layers, Clock, CheckCircle, TrendingUp, Sparkles } from 'lucide-react';
 import { StudyKitData } from './StudyKit';
 
 interface HistoryItem {
@@ -40,14 +40,13 @@ export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboard
                 const upcoming: HistoryItem[] = [];
 
                 history.forEach(item => {
-                    // Check if any question is due
-                    // If no SRS data exists, assume it's new and due
                     const questions = item.data.quiz || [];
                     if (questions.length === 0) return;
 
-                    const isDue = questions.some(q => !q.nextReviewDate || q.nextReviewDate <= now);
+                    // If any card hasn't been reviewed yet, or a reviewed card is due
+                    const hasAttentionRequired = questions.some(q => !q.lastReviewed || (q.nextReviewDate && q.nextReviewDate <= now));
 
-                    if (isDue) {
+                    if (hasAttentionRequired) {
                         due.push(item);
                     } else {
                         upcoming.push(item);
@@ -167,10 +166,31 @@ export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboard
                                                     <Layers className="w-4 h-4" />
                                                     {item.data.quiz?.length || 0} cards
                                                 </span>
-                                                <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400 font-bold">
-                                                    <Clock className="w-4 h-4" />
-                                                    Due Now
-                                                </span>
+                                                {(() => {
+                                                    const questions = item.data.quiz || [];
+                                                    const isNew = questions.every(q => !q.lastReviewed);
+                                                    const isDue = questions.some(q => q.nextReviewDate && q.nextReviewDate <= Date.now());
+                                                    const reviewedCount = questions.filter(q => q.lastReviewed).length;
+
+                                                    if (isNew) return (
+                                                        <span className="flex items-center gap-1.5 text-blue-500 font-bold">
+                                                            <Sparkles className="w-4 h-4" />
+                                                            Get Started
+                                                        </span>
+                                                    );
+                                                    if (isDue) return (
+                                                        <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400 font-bold">
+                                                            <Clock className="w-4 h-4" />
+                                                            Review Due
+                                                        </span>
+                                                    );
+                                                    return (
+                                                        <span className="flex items-center gap-1.5 text-green-500 font-bold">
+                                                            <CheckCircle className="w-4 h-4" />
+                                                            {reviewedCount}/{questions.length} Ready
+                                                        </span>
+                                                    );
+                                                })()}
                                             </div>
                                             <div className="flex items-center justify-between">
                                                 <div className="flex flex-col">

@@ -75,16 +75,21 @@ export default function Flashcards({ questions, data, onUpdate }: FlashcardsProp
         const nextReview = Date.now() + (daysToAdd * 24 * 60 * 60 * 1000);
 
         // Update Data
-        const newData = { ...data };
-        if (newData.quiz && newData.quiz[currentIndex]) {
-            newData.quiz[currentIndex] = {
-                ...newData.quiz[currentIndex],
-                srsBox: newBox,
-                nextReviewDate: nextReview,
-                lastReviewed: Date.now()
-            };
-            onUpdate(newData);
-        }
+        const newData = {
+            ...data,
+            quiz: data.quiz.map((q, idx) => {
+                if (idx === currentIndex) {
+                    return {
+                        ...q,
+                        srsBox: newBox,
+                        nextReviewDate: nextReview,
+                        lastReviewed: Date.now()
+                    };
+                }
+                return q;
+            })
+        };
+        onUpdate(newData);
 
         // Move to next card
         handleNext();

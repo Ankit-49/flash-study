@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, X, Trash2, Calendar, ChevronRight, Bookmark, Pin, Edit2, Check, Search, AlertTriangle } from 'lucide-react';
+import { History, X, Trash2, Calendar, ChevronRight, Bookmark, Pin, Edit2, Check, Search, AlertTriangle, Sparkles, Trophy } from 'lucide-react';
 import { StudyKitData } from './StudyKit';
 
 interface HistoryItem {
@@ -175,6 +175,18 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
                                                     <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors flex-1">
                                                         {item.title}
                                                     </h4>
+                                                    {item.data.quiz?.every(q => !q.lastReviewed) && (
+                                                        <span className="px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 text-[8px] font-black uppercase tracking-tighter shrink-0 flex items-center gap-0.5">
+                                                            <Sparkles className="w-2 h-2" />
+                                                            NEW
+                                                        </span>
+                                                    )}
+                                                    {item.data.quiz?.every(q => q.srsBox === 5) && (
+                                                        <span className="px-1.5 py-0.5 rounded-md bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400 text-[8px] font-black uppercase tracking-tighter shrink-0 flex items-center gap-0.5">
+                                                            <Trophy className="w-2 h-2" />
+                                                            MASTERED
+                                                        </span>
+                                                    )}
                                                     <button
                                                         onClick={(e) => startRename(item, e)}
                                                         className="p-1 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-primary transition-all"
