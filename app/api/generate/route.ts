@@ -107,11 +107,16 @@ export async function POST(request: Request) {
                     const require = createRequire(import.meta.url);
 
                     // Polyfill DOMMatrix, Path2D, etc. for pdfjs-dist@5 (used by pdf-parse)
-                    const canvas = require('@napi-rs/canvas');
-                    if (typeof global !== 'undefined') {
-                        (global as any).DOMMatrix = canvas.DOMMatrix;
-                        (global as any).Path2D = canvas.Path2D;
-                        (global as any).DOMPoint = canvas.DOMPoint;
+                    try {
+                        const canvas = require('@napi-rs/canvas');
+                        if (typeof global !== 'undefined') {
+                            (global as any).DOMMatrix = canvas.DOMMatrix;
+                            (global as any).Path2D = canvas.Path2D;
+                            (global as any).DOMPoint = canvas.DOMPoint;
+                        }
+                        console.log('Successfully loaded @napi-rs/canvas polyfills');
+                    } catch (canvasErr: any) {
+                        console.error('Failed to load @napi-rs/canvas:', canvasErr.message);
                     }
 
                     let pdfParse = require('pdf-parse');
@@ -120,13 +125,18 @@ export async function POST(request: Request) {
                     }
 
                     let fileText = '';
-                    if (typeof pdfParse === 'function') {
-                        const pdfData = await pdfParse(buffer);
-                        fileText = pdfData.text;
-                    } else if (typeof pdfParse === 'object' && pdfParse.PDFParse) {
-                        const parser = new pdfParse.PDFParse({ data: buffer });
-                        const result = await parser.getText();
-                        fileText = result.text;
+                    try {
+                        if (typeof pdfParse === 'function') {
+                            const pdfData = await pdfParse(buffer);
+                            fileText = pdfData.text;
+                        } else if (typeof pdfParse === 'object' && pdfParse.PDFParse) {
+                            const parser = new pdfParse.PDFParse({ data: buffer });
+                            const result = await parser.getText();
+                            fileText = result.text;
+                        }
+                    } catch (parseErr: any) {
+                        console.error('pdf-parse core failed:', parseErr.message);
+                        throw new Error(`PDF parsing failed: ${parseErr.message}`);
                     }
 
                     if (fileText) {
