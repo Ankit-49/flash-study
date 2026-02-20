@@ -9,6 +9,9 @@ For the provided text, generate a valid JSON object with the following structure
   "keyTerms": [
     { "term": "Term Name (Use LaTeX if formula)", "definition": "Definition (Use LaTeX for formulas and symbols)" }
   ],
+  "mnemonics": [
+    { "concept": "Concept Name", "mnemonic": "Acronym, catchphrase, or visual story", "type": "acronym or story" }
+  ],
   "quiz": [
     { 
       "question": "Question text", 
@@ -46,8 +49,9 @@ CRITICAL INSTRUCTION FOR MATH AND JSON:
 - Example: Write '$E = mc ^ 2$' for inline math.
 - Example: Write '$$...$$' for block math.
 - DO NOT output plain text formulas like 'epsilon0'. Use '$\\\\epsilon_0$'.
-- You MUST include ALL fields in the JSON object: "summary", "analogies", "keyTerms", "quiz", and "mindMap".
+- You MUST include ALL fields in the JSON object: "summary", "analogies", "keyTerms", "mnemonics", "quiz", and "mindMap".
 - NEVER omit any field, even for large documents.
+- For "mnemonics", provide 2-3 creative memory aids for the most difficult concepts.
 - Ensure the "quiz" contains exactly 5 diverse multiple-choice questions.
 - Ensure the "mindMap" is a complete Mermaid.js graph.
 - Ensure the output is strictly valid JSON. Do not include markdown code blocks.`;

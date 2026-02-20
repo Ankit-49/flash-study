@@ -5,7 +5,7 @@ import {
     Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle,
     Network, Trophy, XCircle, CheckCircle, Layout, Layers,
     Tag, Download, FileText, Loader2, Sparkles, Volume2,
-    VolumeX, Share2, Printer, Eye, EyeOff, Play, Pause, Search
+    VolumeX, Share2, Printer, Eye, EyeOff, Play, Pause, Search, Lightbulb
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -33,6 +33,7 @@ export interface StudyKitData {
     summary: string;
     analogies: string[];
     keyTerms: { term: string; definition: string }[];
+    mnemonics: { concept: string; mnemonic: string; type: string }[];
     quiz: QuizQuestion[];
     mindMap: string;
 }
@@ -115,6 +116,12 @@ export default function StudyKit({ data, onExplore, onUpdate }: StudyKitProps) {
         md += `## Key Terms\n`;
         data.keyTerms?.forEach(tk => {
             md += `- **${tk.term}**: ${tk.definition}\n`;
+        });
+        md += `\n`;
+
+        md += `## Mnemonics\n`;
+        data.mnemonics?.forEach(m => {
+            md += `- **${m.concept}** (${m.type}): ${m.mnemonic}\n`;
         });
         md += `\n`;
 
@@ -265,6 +272,40 @@ export default function StudyKit({ data, onExplore, onUpdate }: StudyKitProps) {
                                         Deep Dive
                                     </button>
                                 )}
+                            </div>
+                        </div>
+                    ))}
+                </motion.div>
+            )
+        },
+        {
+            id: 'mnemonics',
+            title: 'Memory Aid',
+            color: 'amber',
+            icon: <Lightbulb className="w-4 h-4" />,
+            content: (
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                >
+                    {data.mnemonics?.map((m, i) => (
+                        <div key={i} className="group relative p-8 glass-panel rounded-[2.5rem] border border-amber-100 dark:border-amber-900/20 bg-amber-50/30 dark:bg-amber-900/5 hover:bg-amber-100/50 dark:hover:bg-amber-900/10 transition-all overflow-hidden">
+                            <div className="absolute -right-8 -top-8 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition-colors" />
+
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-amber-500/10 rounded-xl">
+                                    <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-[0.2em]">{m.type}</span>
+                            </div>
+
+                            <h4 className="text-xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">{m.concept}</h4>
+                            <div className="text-lg text-slate-700 dark:text-slate-300 font-bold leading-relaxed italic border-l-4 border-amber-500 pl-4 py-1">
+                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                    {m.mnemonic}
+                                </ReactMarkdown>
                             </div>
                         </div>
                     ))}
