@@ -62,9 +62,14 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [speakingTextId, setSpeakingTextId] = useState<string | null>(null);
     const [charIndex, setCharIndex] = useState(0);
-    const [isFocusMode, setIsFocusMode] = useState(false);
-
     const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+    const [focusedSection, setFocusedSection] = useState<string | null>(null);
+    const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
+        { role: 'assistant', content: "Hi! I'm your study assistant. Ask me anything about this material!" }
+    ]);
+    const [chatInput, setChatInput] = useState('');
+    const [isChatLoading, setIsChatLoading] = useState(false);
+    const [showChat, setShowChat] = useState(false);
 
     if (!data) return null;
 
@@ -109,9 +114,32 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
         window.speechSynthesis.speak(utterance);
     };
 
-    useEffect(() => {
-        return () => window.speechSynthesis.cancel();
-    }, []);
+    const handleSendMessage = async () => {
+        if (!chatInput.trim() || isChatLoading) return;
+
+        const userMsg = chatInput.trim();
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+        setChatInput('');
+        setIsChatLoading(true);
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: userMsg,
+                    chatHistory: chatMessages.slice(-5),
+                    context: context || data.summary
+                })
+            });
+            const chatData = await res.json();
+            setChatMessages(prev => [...prev, { role: 'assistant', content: chatData.response }]);
+        } catch (error) {
+            setChatMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting to the AI. Please try again." }]);
+        } finally {
+            setIsChatLoading(false);
+        }
+    };
 
     const handleExportMarkdown = () => {
         let md = `# Study Kit: ${data.summary.substring(0, 50)}...\n\n`;
@@ -415,10 +443,10 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
         }
     ].filter(s => s.content);
 
-    const activeContent = sections.find(s => s.id === activeTab)?.content;
+    const activeSection = sections.find(s => s.id === focusedSection);
 
     return (
-        <div className="w-full max-w-5xl space-y-10 mt-12 mb-32">
+        <div className="w-full max-w-6xl space-y-12 mt-12 mb-32 relative">
             {/* Premium Header/Toolbar */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -430,19 +458,13 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
                         <div className="absolute inset-0 bg-primary/20 scale-0 group-hover:scale-110 transition-transform duration-500" />
                         <Sparkles className="w-8 h-8 text-primary relative z-10" />
                     </div>
-                    {!isFocusMode && (
-                        <motion.div
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -10 }}
-                        >
-                            <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Interactive Knowledge OS</h4>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Ready for exploration</p>
-                            </div>
-                        </motion.div>
-                    )}
+                    <div>
+                        <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Interactive Knowledge OS</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Ready for exploration</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex flex-col items-center gap-2">
@@ -460,12 +482,11 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
 
                 <div className="flex flex-wrap items-center gap-3">
                     <button
-                        onClick={() => setIsFocusMode(!isFocusMode)}
-                        className={`flex items-center gap-2.5 px-4 py-2.5 text-[10px] font-black rounded-xl transition-all active:scale-95 uppercase tracking-widest ${isFocusMode ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}
-                        title={isFocusMode ? "Disable Focus Mode" : "Enable Focus Mode"}
+                        onClick={() => setShowChat(!showChat)}
+                        className={`flex items-center gap-2.5 px-6 py-3.5 text-xs font-black rounded-2xl transition-all active:scale-95 uppercase tracking-widest ${showChat ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}
                     >
-                        {isFocusMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        {isFocusMode ? 'Focus On' : 'Focus Mode'}
+                        <MessageSquare className="w-4 h-4" />
+                        Ask Tutor
                     </button>
                     <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block" />
                     <button
@@ -484,52 +505,145 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
                         <Printer className="w-3.5 h-3.5" />
                         PDF
                     </button>
-                    <button
-                        onClick={handleExportAnki}
-                        className="flex items-center gap-2.5 px-6 py-3.5 text-xs font-black text-white bg-primary hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] rounded-2xl transition-all active:scale-95 uppercase tracking-widest shadow-lg"
-                        title="Export for Anki"
-                    >
-                        <Layers className="w-4 h-4" />
-                        Anki CSV
-                    </button>
                 </div>
             </motion.div>
 
-            {/* Premium Tab Navigation */}
-            <div className="flex items-center justify-start md:justify-center p-1.5 bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-2xl rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 shadow-inner w-full mx-auto sticky top-4 z-40 overflow-x-auto no-scrollbar gap-1">
-                {sections.map((section) => (
-                    <button
+            {/* Knowledge Dashboard Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sections.map((section, idx) => (
+                    <motion.div
                         key={section.id}
-                        onClick={() => setActiveTab(section.id)}
-                        className={`relative flex items-center gap-1.5 px-3 md:px-5 py-3 rounded-[2rem] text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] transition-all duration-300 whitespace-nowrap flex-shrink-0 ${activeTab === section.id ? 'text-primary' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        onClick={() => setFocusedSection(section.id)}
+                        className={`group cursor-pointer p-8 glass-panel rounded-[2.5rem] bg-white/40 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800 hover:border-${section.color}-500/50 hover:shadow-2xl hover:shadow-${section.color}-500/10 transition-all relative overflow-hidden h-64 flex flex-col justify-between`}
                     >
-                        {activeTab === section.id && (
-                            <motion.div
-                                layoutId="activeTab"
-                                className="absolute inset-0 bg-white dark:bg-slate-700 shadow-md rounded-[2rem] z-0"
-                                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                            />
-                        )}
-                        <span className="relative z-10 scale-90">{section.icon}</span>
-                        <span className="relative z-10 hidden sm:inline ml-1.5">{section.title}</span>
-                    </button>
+                        <div className={`absolute top-0 right-0 w-32 h-32 bg-${section.color}-500/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-${section.color}-500/10 transition-colors`} />
+
+                        <div className="space-y-4 relative z-10">
+                            <div className={`w-12 h-12 rounded-2xl bg-${section.color}-500/10 flex items-center justify-center text-${section.color}-600 dark:text-${section.color}-400 group-hover:scale-110 transition-transform`}>
+                                {section.icon}
+                            </div>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white group-hover:translate-x-1 transition-transform">{section.title}</h3>
+                        </div>
+
+                        <div className="flex items-center justify-between relative z-10">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Explore Module</span>
+                            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors" />
+                        </div>
+                    </motion.div>
                 ))}
             </div>
 
-            {/* Animated Tab Content */}
-            <div id="study-kit-content" className="relative min-h-[400px]">
-                <AnimatePresence mode="wait">
+            {/* Chatbot Sidebar */}
+            <AnimatePresence>
+                {showChat && (
                     <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.4, ease: "circOut" }}
+                        initial={{ opacity: 0, x: 100 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 100 }}
+                        className="fixed right-6 bottom-6 w-[400px] h-[600px] bg-white dark:bg-slate-950 rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 z-[100] flex flex-col overflow-hidden"
                     >
-                        {activeContent}
+                        <div className="p-6 bg-primary text-white flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <MessageSquare className="w-5 h-5" />
+                                <span className="font-black text-xs uppercase tracking-widest">Study Assistant</span>
+                            </div>
+                            <button onClick={() => setShowChat(false)}>
+                                <XCircle className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                            {chatMessages.map((msg, i) => (
+                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-primary text-white ml-auto rounded-tr-none' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none'}`}>
+                                        {msg.content}
+                                    </div>
+                                </div>
+                            ))}
+                            {isChatLoading && (
+                                <div className="flex justify-start">
+                                    <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none animate-pulse">
+                                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-6 border-t border-slate-100 dark:border-slate-800">
+                            <div className="flex gap-2 p-2 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+                                <input
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                    placeholder="Ask anything..."
+                                    className="flex-1 bg-transparent border-none focus:ring-0 text-sm p-2"
+                                />
+                                <button
+                                    onClick={handleSendMessage}
+                                    disabled={isChatLoading}
+                                    className="p-3 bg-primary text-white rounded-xl hover:scale-105 transition-all disabled:opacity-50"
+                                >
+                                    <Send className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
                     </motion.div>
-                </AnimatePresence>
-            </div>
+                )}
+            </AnimatePresence>
+
+            {/* Focus Window Modal */}
+            <AnimatePresence>
+                {focusedSection && activeSection && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-8">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setFocusedSection(null)}
+                            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                            className="relative w-full max-w-5xl h-[85vh] bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border border-white/20 dark:border-slate-800 flex flex-col overflow-hidden"
+                            id="study-kit-content"
+                        >
+                            {/* Focus Header */}
+                            <div className={`p-8 bg-${activeSection.color}-500/5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between`}>
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-2xl bg-${activeSection.color}-500/20 flex items-center justify-center text-${activeSection.color}-600 dark:text-${activeSection.color}-400 shadow-sm`}>
+                                        {activeSection.icon}
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{activeSection.title}</h2>
+                                        <p className="text-xs text-slate-500 font-bold tracking-widest uppercase mt-0.5">Focus Module</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setFocusedSection(null)}
+                                        className="p-4 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-3xl transition-colors group"
+                                    >
+                                        <XCircle className="w-7 h-7 text-slate-400 group-hover:text-red-500 transition-colors" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Focus Content */}
+                            <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
+                                <div className="max-w-4xl mx-auto">
+                                    {activeSection.content}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
