@@ -19,7 +19,7 @@ import MermaidChart from './MermaidChart';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-interface QuizQuestion {
+export interface QuizQuestion {
     question: string;
     options: string[];
     correctOptionIndex: number;

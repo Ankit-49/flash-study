@@ -207,7 +207,6 @@ export async function POST(request: Request) {
 
         const response = await result.response;
         let outputText = response.text();
-        console.log('Generation successful');
 
         // Robust JSON Extraction and Cleaning
         const extractJSON = (text: string) => {

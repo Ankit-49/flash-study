@@ -4,8 +4,6 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
     try {
         const apiKey = process.env.GEMINI_API_KEY;
-        console.log(`--- CHAT API CALL [v6] --- API Key Length: ${apiKey?.length || 0}`);
-
         if (!apiKey) {
             return NextResponse.json({ error: 'Gemini API Key not configured' }, { status: 500 });
         }
