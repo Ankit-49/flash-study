@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Calendar, ChevronRight, X, Layers, Clock, CheckCircle, TrendingUp, Sparkles } from 'lucide-react';
+import { Brain, Calendar, ChevronRight, X, Layers, Clock, CheckCircle, TrendingUp, Sparkles, Trophy } from 'lucide-react';
 import { StudyKitData } from './StudyKit';
+import ExamSimulator from './ExamSimulator';
 
 interface HistoryItem {
     id: string;
@@ -22,6 +23,7 @@ interface SRSDashboardProps {
 export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboardProps) {
     const [dueItems, setDueItems] = useState<HistoryItem[]>([]);
     const [upcomingItems, setUpcomingItems] = useState<HistoryItem[]>([]);
+    const [showSimulator, setShowSimulator] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -279,6 +281,15 @@ export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboard
                     </motion.div>
                 </>
             )}
+
+            <AnimatePresence>
+                {showSimulator && (
+                    <ExamSimulator
+                        isOpen={showSimulator}
+                        onClose={() => setShowSimulator(false)}
+                    />
+                )}
+            </AnimatePresence>
         </AnimatePresence>
     );
 }
