@@ -5,7 +5,7 @@ import {
     Copy, Check, ChevronDown, BookOpen, Brain, HelpCircle,
     Network, Trophy, XCircle, CheckCircle, Layout, Layers,
     Tag, Download, FileText, Loader2, Sparkles, Volume2,
-    VolumeX, Share2, Printer, Eye, EyeOff, Headphones, Play, Pause, Mic, Search
+    VolumeX, Share2, Printer, Eye, EyeOff, Play, Pause, Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -35,7 +35,6 @@ export interface StudyKitData {
     keyTerms: { term: string; definition: string }[];
     quiz: QuizQuestion[];
     mindMap: string;
-    podcast: { role: string; content: string }[];
 }
 
 interface StudyKitProps {
@@ -60,67 +59,9 @@ export default function StudyKit({ data, onExplore, onUpdate }: StudyKitProps) {
     const [charIndex, setCharIndex] = useState(0);
     const [isFocusMode, setIsFocusMode] = useState(false);
 
-    // Podcast State
-    const [isPlayingPodcast, setIsPlayingPodcast] = useState(false);
-    const [currentLineIndex, setCurrentLineIndex] = useState(0);
-
     const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
     if (!data) return null;
-
-    const stopPodcast = () => {
-        window.speechSynthesis.cancel();
-        setIsPlayingPodcast(false);
-        setCurrentLineIndex(0);
-    };
-
-    const togglePodcast = () => {
-        if (isPlayingPodcast) {
-            window.speechSynthesis.cancel();
-            setIsPlayingPodcast(false);
-        } else {
-            playPodcastLine(currentLineIndex);
-            setIsPlayingPodcast(true);
-        }
-    };
-
-    const playPodcastLine = (index: number) => {
-        if (!data.podcast || index >= data.podcast.length) {
-            setIsPlayingPodcast(false);
-            setCurrentLineIndex(0);
-            return;
-        }
-
-        setCurrentLineIndex(index);
-        const line = data.podcast[index];
-        const utterance = new SpeechSynthesisUtterance(line.content);
-
-        // Voice Customization
-        // Try to find a distinct voice for the "Tutor" vs "Student" if available
-        // This is browser dependent, so we use pitch/rate as fallback
-        const voices = window.speechSynthesis.getVoices();
-
-        if (line.role === 'Tutor') {
-            utterance.pitch = 1.0;
-            utterance.rate = 1.0;
-            // Try to find a deeper/authoritative voice if possible, otherwise default
-        } else {
-            utterance.pitch = 1.2; // Slightly higher for student
-            utterance.rate = 1.1; // Slightly faster
-        }
-
-        utterance.onend = () => {
-            if (index + 1 < data.podcast.length) {
-                playPodcastLine(index + 1);
-            } else {
-                setIsPlayingPodcast(false);
-                setCurrentLineIndex(0);
-            }
-        };
-
-        speechRef.current = utterance;
-        window.speechSynthesis.speak(utterance);
-    };
 
     // Stop all audio on unmount
     useEffect(() => {
@@ -128,10 +69,6 @@ export default function StudyKit({ data, onExplore, onUpdate }: StudyKitProps) {
     }, []);
 
     const handleSpeech = (text: string, id: string = 'summary') => {
-        // Stop podcast if running
-        if (isPlayingPodcast) {
-            stopPodcast();
-        }
 
         if (isSpeaking && speakingTextId === id) {
             window.speechSynthesis.cancel();
@@ -279,70 +216,6 @@ export default function StudyKit({ data, onExplore, onUpdate }: StudyKitProps) {
                                 {data.summary}
                             </ReactMarkdown>
                         )}
-                    </div>
-                </motion.div>
-            )
-        },
-        {
-            id: 'podcast',
-            title: 'Briefing',
-            color: 'violet',
-            icon: <Headphones className="w-4 h-4" />,
-            content: (
-                <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="space-y-6"
-                >
-                    <div className="flex flex-col items-center justify-center space-y-6 py-8 glass-panel rounded-[2.5rem] bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/20">
-                        <div className="relative">
-                            {isPlayingPodcast && (
-                                <div className="absolute inset-0 bg-violet-500 rounded-full blur-xl opacity-20 animate-pulse" />
-                            )}
-                            <button
-                                onClick={togglePodcast}
-                                className="relative z-10 w-20 h-20 bg-violet-600 hover:bg-violet-700 text-white rounded-full flex items-center justify-center shadow-lg shadow-violet-500/30 transition-all active:scale-95 group"
-                            >
-                                {isPlayingPodcast ? (
-                                    <Pause className="w-8 h-8 fill-current" />
-                                ) : (
-                                    <Play className="w-8 h-8 fill-current translate-x-1" />
-                                )}
-                            </button>
-                        </div>
-                        <div className="text-center space-y-2">
-                            <h3 className="text-lg font-black text-slate-800 dark:text-white">AI Audio Briefing</h3>
-                            <p className="text-sm text-slate-500 font-medium">Listen to a generated conversation about this topic</p>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4">
-                        {data.podcast?.map((line, i) => {
-                            const isCurrent = isPlayingPodcast && currentLineIndex === i;
-                            const isTutor = line.role === 'Tutor';
-                            return (
-                                <motion.div
-                                    key={i}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{
-                                        opacity: 1,
-                                        y: 0,
-                                        scale: isCurrent ? 1.02 : 1,
-                                        borderColor: isCurrent ? (isTutor ? 'rgba(124, 58, 237, 0.5)' : 'rgba(16, 185, 129, 0.5)') : 'transparent'
-                                    }}
-                                    className={`flex gap-4 p-4 rounded-2xl border ${isCurrent ? 'bg-white dark:bg-slate-800 shadow-md' : 'bg-transparent border-transparent opacity-70 hover:opacity-100 transition-opacity'}`}
-                                >
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isTutor ? 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
-                                        {isTutor ? <Mic className="w-5 h-5" /> : <HelpCircle className="w-5 h-5" />}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{line.role}</p>
-                                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed">{line.content}</p>
-                                    </div>
-                                </motion.div>
-                            )
-                        })}
                     </div>
                 </motion.div>
             )
