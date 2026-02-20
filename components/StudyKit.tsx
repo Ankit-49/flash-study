@@ -36,6 +36,7 @@ export interface StudyKitData {
     keyTerms: { term: string; definition: string }[];
     mnemonics: { concept: string; mnemonic: string; type: string }[];
     reflectionQuestions: string[];
+    sources: string[];
     quiz: QuizQuestion[];
     mindMap: string;
 }
@@ -132,6 +133,10 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
         data.reflectionQuestions?.forEach(q => {
             md += `- ${q}\n`;
         });
+        md += `\n`;
+
+        md += `## Sources\n`;
+        data.sources?.forEach(s => md += `- ${s}\n`);
         md += `\n`;
 
         md += `## Analogies\n`;
@@ -437,6 +442,19 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
                                 <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Ready for exploration</p>
                             </div>
                         </motion.div>
+                    )}
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                    {data.sources && data.sources.length > 0 && (
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {data.sources.map((source, i) => (
+                                <span key={i} className="px-3 py-1 bg-primary/5 text-primary text-[9px] font-black rounded-lg border border-primary/10 uppercase tracking-widest flex items-center gap-1.5">
+                                    <FileText className="w-3 h-3" />
+                                    {source}
+                                </span>
+                            ))}
+                        </div>
                     )}
                 </div>
 

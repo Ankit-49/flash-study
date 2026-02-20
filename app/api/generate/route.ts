@@ -16,6 +16,7 @@ For the provided text, generate a valid JSON object with the following structure
     "Open-ended question 1 requiring critical thinking",
     "Open-ended question 2 requiring critical thinking"
   ],
+  "sources": ["Full name of source file 1", "Full name of source file 2"],
   "quiz": [
     { 
       "question": "Question text", 
@@ -53,10 +54,11 @@ CRITICAL INSTRUCTION FOR MATH AND JSON:
 - Example: Write '$E = mc ^ 2$' for inline math.
 - Example: Write '$$...$$' for block math.
 - DO NOT output plain text formulas like 'epsilon0'. Use '$\\\\epsilon_0$'.
-- You MUST include ALL fields in the JSON object: "summary", "analogies", "keyTerms", "mnemonics", "reflectionQuestions", "quiz", and "mindMap".
+- You MUST include ALL fields in the JSON object: "summary", "analogies", "keyTerms", "mnemonics", "reflectionQuestions", "sources", "quiz", and "mindMap".
 - NEVER omit any field, even for large documents.
 - For "mnemonics", provide 2-3 creative memory aids for the most difficult concepts.
 - For "reflectionQuestions", provide 2-3 deep, open-ended questions that encourage applying the concept.
+- For "sources", list the names of the files/documents provided as input. If multiple sources are provided, synthesize them into one cohesive kit.
 - Ensure the "quiz" contains exactly 5 diverse multiple-choice questions.
 - Ensure the "mindMap" is a complete Mermaid.js graph.
 - Ensure the output is strictly valid JSON. Do not include markdown code blocks.`;
@@ -82,11 +84,13 @@ export async function POST(request: Request) {
             const formData = await request.formData();
             const files = formData.getAll('file') as File[];
             const plainText = formData.get('text') as string | null;
+            const fileNames: string[] = [];
 
-            if (plainText) text += plainText;
+            if (plainText) text += `Input context (text): ${plainText}\n\n`;
 
             for (const file of files) {
                 if (!file) continue;
+                fileNames.push(file.name);
                 console.log(`Processing file: ${file.name} (${file.type})`);
                 const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -137,6 +141,10 @@ export async function POST(request: Request) {
                         text += fileText;
                     }
                 }
+            }
+
+            if (fileNames.length > 0) {
+                text = `Input sources: ${fileNames.join(', ')}\n\n${text}`;
             }
         } else {
             const json = await request.json();

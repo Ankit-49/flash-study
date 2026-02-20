@@ -127,12 +127,21 @@ export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboard
                                     Optimized based on your forgetting curve
                                 </p>
                             </div>
-                            <button
-                                onClick={onClose}
-                                className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl transition-colors"
-                            >
-                                <X className="w-6 h-6 text-slate-500" />
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setShowSimulator(true)}
+                                    className="px-6 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all flex items-center gap-2"
+                                >
+                                    <Trophy className="w-4 h-4" />
+                                    Exam Simulator
+                                </button>
+                                <button
+                                    onClick={onClose}
+                                    className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl transition-colors"
+                                >
+                                    <X className="w-6 h-6 text-slate-500" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Content */}
