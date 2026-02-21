@@ -799,10 +799,21 @@ function ReflectionComponent({ questions, context }: { questions: string[], cont
                     context: context
                 })
             });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Server error');
+            }
+
             const data = await res.json();
             setGrading(data);
-        } catch (e) {
+        } catch (e: any) {
             console.error('Failed to grade', e);
+            setGrading({
+                error: true,
+                feedback: `Unable to generate feedback at this moment: ${e.message}. Please try again shortly.`,
+                score: 0
+            });
         } finally {
             setLoading(false);
         }
@@ -869,14 +880,16 @@ function ReflectionComponent({ questions, context }: { questions: string[], cont
                             className="mt-8 p-8 rounded-2xl bg-slate-900 dark:bg-black text-white border border-slate-800 shadow-2xl relative overflow-hidden"
                         >
                             <div className="absolute top-0 right-0 p-6">
-                                <div className={`text-4xl font-black ${grading.score >= 80 ? 'text-green-500' : grading.score >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>
-                                    {grading.score}%
+                                <div className={`text-4xl font-black ${grading.error ? 'text-rose-500' : grading.score >= 80 ? 'text-green-500' : grading.score >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                    {grading.error ? '! ' : `${grading.score}%`}
                                 </div>
                             </div>
 
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">AI Feedback</h4>
-                            <p className="text-lg leading-relaxed font-medium mb-6">
-                                {grading.feedback}
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
+                                {grading.error ? 'System Message' : 'AI Feedback'}
+                            </h4>
+                            <p className={`text-lg leading-relaxed font-medium mb-6 ${grading.error ? 'text-rose-400' : ''}`}>
+                                {grading.feedback || "Feedback processing..."}
                             </p>
 
                             <button

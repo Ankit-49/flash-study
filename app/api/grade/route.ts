@@ -16,12 +16,9 @@ export async function POST(request: Request) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
-            generationConfig: {
-                temperature: 0.1, // Lower temperature for more consistent grading
-            }
-        });
+        const modelsToTry = ["gemini-flash-latest", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro-latest"];
+        let result;
+        let lastError;
 
         const prompt = `You are an Expert Educator and Subject Matter Expert specializing in the Feynman Technique.
 Your goal is to evaluate a student's answer based on a provided context.
@@ -52,18 +49,58 @@ Format your response as a strictly valid JSON object:
   "score": 85
 }`;
 
-        const result = await model.generateContent(prompt);
+        for (const modelName of modelsToTry) {
+            try {
+                console.log(`Attempting reflection grading with model: ${modelName}`);
+                const model = genAI.getGenerativeModel({
+                    model: modelName,
+                    generationConfig: {
+                        temperature: 0.1,
+                    }
+                });
+
+                result = await model.generateContent(prompt);
+                if (result && result.response) {
+                    console.log(`Successfully graded with model: ${modelName}`);
+                    break;
+                }
+            } catch (err: any) {
+                console.error(`Reflection Model ${modelName} failed:`, err.message);
+                lastError = err;
+            }
+        }
+
+        if (!result) {
+            throw lastError || new Error('All available Gemini models failed to generate feedback.');
+        }
+
         const response = await result.response;
-        const text = response.text();
+        const outputText = response.text();
 
-        // Extract JSON from response (handling potential markdown formatting)
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const jsonString = jsonMatch ? jsonMatch[0] : text;
-        const feedbackData = JSON.parse(jsonString);
+        // Robust JSON Extraction
+        const extractJSON = (text: string) => {
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                let cleaned = text.replace(/```json\n?/, '').replace(/\n?```/, '').trim();
+                try {
+                    return JSON.parse(cleaned);
+                } catch (e2) {
+                    const startIdx = cleaned.indexOf('{');
+                    const endIdx = cleaned.lastIndexOf('}');
+                    if (startIdx !== -1 && endIdx !== -1) {
+                        cleaned = cleaned.substring(startIdx, endIdx + 1);
+                        return JSON.parse(cleaned);
+                    }
+                    throw e2;
+                }
+            }
+        };
 
+        const feedbackData = extractJSON(outputText);
         return NextResponse.json(feedbackData);
     } catch (error: any) {
         console.error('Grading Error:', error);
-        return NextResponse.json({ error: 'Failed to grade answer' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to grade answer: ' + error.message }, { status: 500 });
     }
 }
