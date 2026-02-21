@@ -44,7 +44,7 @@ For the provided text, generate a valid JSON object with the following structure
         "correctOptionIndex": 4
     }
   ],
-  "mindMap": "A CLEAR Mermaid.js graph LR (horizontal) diagram. Use 'graph LR' ONLY. Ensure nodes are short. Avoid deep nesting. CRITICAL: DO NOT use any LaTeX or special math symbols inside Mermaid nodes as they will break the diagram."
+  "mindMap": "A CLEAR Mermaid.js graph LR (horizontal) diagram. Use 'graph LR' ONLY. Ensure nodes are short. Avoid deep nesting. MANDATORY: Use double quotes for ALL labels, e.g., A[\"Label Text\"] or B(\"Label\"). CRITICAL: DO NOT use any LaTeX, special math symbols, or parentheses inside labels unless they are inside double quotes. Math in Mermaid will ALWAYS break the diagram."
 }
 
 CRITICAL INSTRUCTION FOR MATH AND JSON:

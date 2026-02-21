@@ -38,7 +38,17 @@ export default function MermaidChart({ chart }: MermaidChartProps) {
     }, [chart]);
 
     // Clean up lines and common AI errors in mermaid output
-    const cleanChart = chart.replace(/\\n/g, '\n').replace(/&/g, 'and').trim();
+    const cleanChart = chart
+        .replace(/\\n/g, '\n')
+        .replace(/&/g, 'and')
+        // Automatically wrap node labels in double quotes if they aren't already
+        // This targets patterns like ID[Label] or ID(Label) or ID((Label)) or ID{Label}
+        .replace(/([A-Z0-9_-]+)\[([^"\]\n]+)\]/gi, '$1["$2"]')
+        .replace(/([A-Z0-9_-]+)\(([^"()\n]+)\)/gi, '$1("$2")')
+        .replace(/([A-Z0-9_-]+)\{([^"\}\n]+)\}/gi, '$1{"$2"}')
+        // Final sanitization for math symbols that often leak into Mermaid labels
+        .replace(/[$^{}]/g, '')
+        .trim();
 
     return (
         <div className="w-full flex justify-start items-start py-6 sm:py-10 px-2 sm:px-4 overflow-x-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-transparent min-h-[300px] touch-pan-x">
