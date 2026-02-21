@@ -61,7 +61,10 @@ CRITICAL INSTRUCTION FOR MATH AND JSON:
 - For "sources", list the names of the files/documents provided as input. If multiple sources are provided, synthesize them into one cohesive kit.
 - Ensure the "quiz" contains exactly 5 diverse multiple-choice questions.
 - Ensure the "mindMap" is a complete Mermaid.js graph.
-- Ensure the output is strictly valid JSON. Do not include markdown code blocks.`;
+- CRITICAL: Ensure the output is strictly valid JSON.
+- DO NOT miss commas between array elements (e.g., in "quiz" or "keyTerms").
+- ALWAYS escape double quotes inside strings: use \\" if you need a quote inside a field.
+- Do not include markdown code blocks.`;
 
 export async function POST(request: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -169,7 +172,7 @@ export async function POST(request: Request) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const modelsToTry = ["gemini-flash-latest", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-pro-latest"];
+        const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-pro-latest"];
         let result;
         let lastError;
 
@@ -188,12 +191,13 @@ export async function POST(request: Request) {
             try {
                 console.log(`Attempting with model: ${modelName}`);
                 const isFlashLatest = modelName === "gemini-flash-latest";
+                const isTwoZero = modelName.includes('2.0');
                 const model = genAI.getGenerativeModel({
                     model: modelName,
                     generationConfig: {
                         temperature: 0.2,
                         maxOutputTokens: 16384,
-                        responseMimeType: (modelName.includes('1.5') || modelName.includes('2.') || isFlashLatest) ? "application/json" : "text/plain"
+                        responseMimeType: (modelName.includes('1.5') || isTwoZero || isFlashLatest) ? "application/json" : "text/plain"
                     }
                 });
 
@@ -241,9 +245,12 @@ export async function POST(request: Request) {
                         try {
                             return JSON.parse(cleaned);
                         } catch (e3) {
-                            // Last resort: handle unescaped newlines within strings
-                            // This is risky but helps with common AI formatting errors
-                            const ultraCleaned = cleaned.replace(/\n(?=[^"]*"[^"]*(?:"[^"]*"[^"]*)*$)/g, "\\n");
+                            // Last resort: handle unescaped newlines and common missing commas
+                            const ultraCleaned = cleaned
+                                .replace(/\n(?=[^"]*"[^"]*(?:"[^"]*"[^"]*)*$)/g, "\\n") // Unescaped newlines
+                                .replace(/}\s*{/g, "},{") // Missing commas between objects
+                                .replace(/]\s*{/g, "],{") // Missing commas between array/object
+                                .replace(/}\s*\[/g, "},["); // Missing commas between object/array
                             return JSON.parse(ultraCleaned);
                         }
                     }
@@ -260,7 +267,10 @@ export async function POST(request: Request) {
                 context: text
             });
         } catch (parseError: any) {
-            console.error('AI JSON Parsing failed after all attempts:', parseError.message);
+            console.error('AI JSON Parsing failed after all attempts.');
+            console.error('--- RAW OUTPUT START ---');
+            console.error(outputText);
+            console.error('--- RAW OUTPUT END ---');
             throw new Error(`AI response formatting error: ${parseError.message}`);
         }
 
