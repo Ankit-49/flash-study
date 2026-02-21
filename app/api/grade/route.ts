@@ -16,22 +16,40 @@ export async function POST(request: Request) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-1.5-flash',
+            generationConfig: {
+                temperature: 0.1, // Lower temperature for more consistent grading
+            }
+        });
 
-        const prompt = `You are a helpful teaching assistant.
-Context of the study material: "${context.substring(0, 3000)}"
-Question asked: "${question}"
-Student's answer: "${answer}"
+        const prompt = `You are an Expert Educator and Subject Matter Expert specializing in the Feynman Technique.
+Your goal is to evaluate a student's answer based on a provided context.
 
-Provide a concise (max 3-4 sentences) evaluation of the answer. 
-1. State if the answer is correct or if it needs improvement.
-2. Provide a brief explanation of the correct concept if they were wrong.
-3. Offer one "deep dive" follow-up point.
+SCORING RUBRIC (0-100):
+- 90-100: Perfect accuracy. Concept explained simply and clearly without losing technical nuance.
+- 70-89: Mostly accurate. May have minor omissions or could be simplified further for better understanding.
+- 40-69: Partially correct but contains notable misunderstandings or misses key components of the concept.
+- Below 40: Factually incorrect or irrelevant to the provided context.
 
-Format your response as a JSON object:
+CONTEXT FROM STUDY MATERIAL:
+"""
+${context.substring(0, 10000)}
+"""
+
+QUESTION: "${question}"
+STUDENT'S ANSWER: "${answer}"
+
+INSTRUCTIONS:
+1. Evaluate if the student understands the core concept.
+2. If they are wrong, explain the correct concept precisely using the context above.
+3. Provide actionable feedback on how they can improve their explanation (Feynman Technique focus).
+4. Offer one "Deep Dive" question or point to encourage further mastery.
+
+Format your response as a strictly valid JSON object:
 {
-  "feedback": "Your evaluation text",
-  "score": 0-100 (where 100 is perfectly correct)
+  "feedback": "Your concise evaluation (max 4 sentences).",
+  "score": 85
 }`;
 
         const result = await model.generateContent(prompt);
