@@ -102,20 +102,23 @@ export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboard
     return (
         <AnimatePresence>
             {isOpen && (
-                <>
+                <div key="srs-dashboard-wrapper">
                     <motion.div
+                        key="srs-backdrop"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80]"
+                        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]"
                     />
                     <motion.div
+                        key="srs-dashboard-content"
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed inset-4 md:inset-10 bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden z-[90] flex flex-col border border-white/20 dark:border-slate-700"
+                        className="fixed inset-4 md:inset-10 bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden z-[110] flex flex-col border border-white/20 dark:border-slate-700"
                     >
+
                         {/* Header */}
                         <div className="p-8 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-10">
                             <div>
@@ -288,7 +291,7 @@ export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboard
                             </section>
                         </div>
                     </motion.div>
-                </>
+                </div>
             )}
 
             <AnimatePresence>

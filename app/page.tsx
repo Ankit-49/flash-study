@@ -8,6 +8,8 @@ import ChatInterface from '@/components/ChatInterface';
 import ThemeToggle from '@/components/ThemeToggle';
 import HistorySidebar from '@/components/HistorySidebar';
 import SRSDashboard from '@/components/SRSDashboard';
+import Footer from '@/components/Footer';
+
 
 export default function Home() {
   const [text, setText] = useState('');
@@ -215,12 +217,12 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen relative overflow-hidden bg-background">
+    <div className="flex flex-col min-h-screen relative overflow-hidden bg-background">
       {/* Background Mesh Gradient */}
       <div className="theme-gradient" />
 
-      <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
-        {streak > 0 && (
+      <div className="fixed top-6 right-6 z-[60] flex items-center gap-3">
+        {streak > 0 ? (
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -230,7 +232,7 @@ export default function Home() {
             <Flame className="w-4 h-4 fill-current animate-pulse" />
             <span>{streak}</span>
           </motion.div>
-        )}
+        ) : null}
         <button
           onClick={() => setIsDashboardOpen(true)}
           className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-primary transition-all shadow-sm"
@@ -251,7 +253,7 @@ export default function Home() {
         <ThemeToggle />
       </div>
 
-      <main className={`flex-1 flex flex-col items-center p-6 sm:p-24 relative z-10 transition-all duration-500 ease-in-out ${isChatOpen ? 'lg:mr-[400px]' : ''}`}>
+      <main className={`flex-1 flex flex-col items-center p-6 pt-24 sm:p-24 relative z-10 transition-all duration-500 ease-in-out ${isChatOpen ? 'lg:mr-[400px]' : ''}`}>
 
         {/* Header Section */}
         <motion.div
@@ -456,6 +458,7 @@ export default function Home() {
           <AnimatePresence>
             {result && (
               <motion.div
+                key="study-kit-result"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -466,25 +469,28 @@ export default function Home() {
             )}
           </AnimatePresence>
         </motion.div>
-        <HistorySidebar
-          isOpen={isHistoryOpen}
-          onClose={() => setIsHistoryOpen(false)}
-          onSelect={(data: StudyKitData) => setResult(data)}
-        />
-        <SRSDashboard
-          isOpen={isDashboardOpen}
-          onClose={() => setIsDashboardOpen(false)}
-          onSelect={(data: StudyKitData) => setResult(data)}
-        />
       </main>
 
-      {context && (
+      {!!context && (
         <ChatInterface
           context={context}
           isOpen={isChatOpen}
           onToggle={setIsChatOpen}
         />
       )}
+
+      <Footer />
+
+      <HistorySidebar
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelect={(data: StudyKitData) => setResult(data)}
+      />
+      <SRSDashboard
+        isOpen={isDashboardOpen}
+        onClose={() => setIsDashboardOpen(false)}
+        onSelect={(data: StudyKitData) => setResult(data)}
+      />
     </div>
   );
 }

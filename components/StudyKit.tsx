@@ -242,7 +242,7 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="space-y-6"
+                    className="space-y-6 p-8 glass-panel rounded-[2.5rem] bg-white/95 dark:bg-slate-900 shadow-xl border border-slate-100 dark:border-slate-800"
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -282,7 +282,7 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
                     className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                 >
                     {data.keyTerms.map((term, i) => (
-                        <div key={i} className="p-6 glass-panel rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-teal-500/50 transition-all group/term bg-white/40 dark:bg-slate-900/40 shadow-sm relative">
+                        <div key={i} className="p-6 glass-panel rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-teal-500/50 transition-all group/term bg-white/95 dark:bg-slate-900 shadow-sm relative">
                             <div className="flex justify-between items-start mb-3">
                                 <div className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
                                     <div className="p-1.5 bg-teal-500/10 rounded-lg">
@@ -333,7 +333,7 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
                     className="grid grid-cols-1 md:grid-cols-2 gap-6"
                 >
                     {data.mnemonics?.map((m, i) => (
-                        <div key={i} className="group relative p-8 glass-panel rounded-[2.5rem] border border-amber-100 dark:border-amber-900/20 bg-amber-50/30 dark:bg-amber-900/5 hover:bg-amber-100/50 dark:hover:bg-amber-900/10 transition-all overflow-hidden">
+                        <div key={i} className="group relative p-8 glass-panel rounded-[2.5rem] border border-amber-100 dark:border-amber-900/20 bg-white/95 dark:bg-slate-900 hover:bg-amber-100/50 dark:hover:bg-amber-900/10 transition-all overflow-hidden shadow-sm">
                             <div className="absolute -right-8 -top-8 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition-colors" />
 
                             <div className="flex items-center gap-3 mb-4">
@@ -367,7 +367,7 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
                     className="space-y-4"
                 >
                     {data.analogies.map((analogy, i) => (
-                        <div key={i} className="flex gap-6 p-8 glass-panel rounded-[2.5rem] border border-purple-100 dark:border-purple-900/20 bg-purple-50/30 dark:bg-purple-900/5">
+                        <div key={i} className="flex gap-6 p-8 glass-panel rounded-[2.5rem] border border-purple-100 dark:border-purple-900/20 bg-white/95 dark:bg-slate-900 shadow-sm">
                             <div className="w-12 h-12 rounded-2xl bg-purple-500 text-white flex items-center justify-center flex-shrink-0 font-black text-xl shadow-lg shadow-purple-500/20">
                                 A
                             </div>
@@ -435,7 +435,7 @@ export default function StudyKit({ data, context, onExplore, onUpdate }: StudyKi
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="w-full glass-panel rounded-[2rem] sm:rounded-[3rem] p-4 sm:p-12 bg-white/40 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800"
+                    className="w-full glass-panel rounded-[2rem] sm:rounded-[3rem] p-4 sm:p-12 bg-white/95 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl"
                 >
                     <MermaidChart chart={data.mindMap} />
                 </motion.div>
