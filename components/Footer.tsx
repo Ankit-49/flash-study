@@ -13,7 +13,7 @@ export default function Footer() {
     ];
 
     return (
-        <footer className="w-full mt-20 pb-10 relative z-10 px-6 sm:px-24">
+        <footer className="w-full mt-20 pb-10 relative z-0 px-6 sm:px-24">
             <div className="max-w-7xl mx-auto">
                 <div className="glass-panel rounded-[2rem] p-8 sm:p-12 overflow-hidden relative group">
                     {/* Decorative background glow */}

@@ -253,7 +253,7 @@ export default function Home() {
         <ThemeToggle />
       </div>
 
-      <main className={`flex-1 flex flex-col items-center p-6 pt-24 sm:p-24 relative z-10 transition-all duration-500 ease-in-out ${isChatOpen ? 'lg:mr-[400px]' : ''}`}>
+      <main className={`flex-1 flex flex-col items-center p-6 pt-24 sm:p-24 relative z-20 transition-all duration-500 ease-in-out ${isChatOpen ? 'lg:mr-[400px]' : ''}`}>
 
         {/* Header Section */}
         <motion.div
