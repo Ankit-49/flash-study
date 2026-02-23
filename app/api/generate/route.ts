@@ -171,8 +171,18 @@ export async function POST(request: Request) {
             );
         }
 
+        const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
         const genAI = new GoogleGenerativeAI(apiKey);
-        const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-pro-latest"];
+        // Prioritize stable flash models which have higher free tier limits (15 RPM)
+        const modelsToTry = [
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b",
+            "gemini-2.0-flash",
+            "gemini-flash-latest",
+            "gemini-1.5-pro",
+            "gemini-pro-latest"
+        ];
+
         let result;
         let lastError;
 
@@ -187,17 +197,19 @@ export async function POST(request: Request) {
 
         console.log('Generating content with Gemini...');
 
-        for (const modelName of modelsToTry) {
+        for (let i = 0; i < modelsToTry.length; i++) {
+            const modelName = modelsToTry[i];
             try {
-                console.log(`Attempting with model: ${modelName}`);
-                const isFlashLatest = modelName === "gemini-flash-latest";
+                console.log(`Attempting with model: ${modelName} (Attempt ${i + 1}/${modelsToTry.length})`);
+                const isFlash = modelName.includes('flash');
                 const isTwoZero = modelName.includes('2.0');
+
                 const model = genAI.getGenerativeModel({
                     model: modelName,
                     generationConfig: {
                         temperature: 0.2,
                         maxOutputTokens: 16384,
-                        responseMimeType: (modelName.includes('1.5') || isTwoZero || isFlashLatest) ? "application/json" : "text/plain"
+                        responseMimeType: (isFlash || isTwoZero) ? "application/json" : "text/plain"
                     }
                 });
 
@@ -210,8 +222,18 @@ export async function POST(request: Request) {
                     break;
                 }
             } catch (err: any) {
-                console.error(`Model ${modelName} failed:`, err.message);
+                const errorMessage = err.message || '';
+                console.error(`Model ${modelName} failed:`, errorMessage);
                 lastError = err;
+
+                // If it's a quota/rate limit error, wait longer before trying next model
+                if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests') || errorMessage.includes('quota')) {
+                    const waitTime = 2000 * (i + 1); // Exponential-ish backoff
+                    console.warn(`Rate limit hit on ${modelName}. Waiting ${waitTime}ms before next attempt...`);
+                    await sleep(waitTime);
+                } else if (errorMessage.includes('404')) {
+                    console.warn(`Model ${modelName} not found, skipping immediately.`);
+                }
             }
         }
 
