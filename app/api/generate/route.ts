@@ -1,3 +1,7 @@
+/**
+ * API route for generating study kits using Gemini AI.
+ * Handles content generation, PDF parsing, and rate limiting.
+ */
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
