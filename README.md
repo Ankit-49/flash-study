@@ -1,23 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚡ FlashStudy
 
-## Getting Started
+**FlashStudy** is an advanced, AI-powered learning platform designed to help students and professionals master any subject with ease. By leveraging cutting-edge Large Language Models (LLMs), FlashStudy transforms your raw notes and PDFs into structured study kits, interactive flashcards, and comprehensive exam simulations.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Key Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the results.
+### 🧠 AI Study Kit Generation
+Transform any text or PDF into a complete study package:
+- **Smart Summaries**: Distill complex topics into concise, readable notes.
+- **Concept Extraction**: Automatically identify key terms and definitions.
+- **Automated Mind Mapping**: Visualize relationships between concepts using Mermaid.js diagrams.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 📅 SRS Dashboard (Spaced Repetition System)
+Never forget what you've learned. Our integrated SRS dashboard tracks your progress and schedules review sessions based on proven cognitive science principles.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 📝 Exam Simulator
+Test your knowledge in a realistic environment:
+- **Dynamic Question Sets**: AI-generated quizzes tailored to your material.
+- **Immediate Feedback**: Understand where you went wrong with detailed explanations.
+- **Performance Tracking**: Monitor your scores over time.
 
+### 💬 AI Study Chat
+Need clarification? Chat with our integrated AI assistant that has the context of your specific study materials.
 
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Library**: [React 19](https://react.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **AI Core**: [Gemini 1.5 Pro](https://ai.google.dev/gemini-api)
+- **Visuals**: [Mermaid.js](https://mermaid.js.org/) (Flowcharts), [KaTeX](https://katex.org/) (Math Formulas)
+
+---
+
+## ⚙️ Getting Started
+
+### Prerequisites
+- Node.js 20+ 
+- npm / yarn / pnpm
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Smudge049/flash-study.git
+   cd flash-study
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Set up Environment Variables:**
+   Create a `.env.local` file in the root directory and add your API keys:
+   ```env
+   GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_api_key_here
+   # Add other keys as needed (Supabase, Vercel, etc.)
+   ```
+
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request or open an issue.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+  Built with ❤️ by <a href="https://github.com/Smudge049">Ankit Sapkota</a>
+</div>
