@@ -9,7 +9,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import HistorySidebar from '@/components/HistorySidebar';
 import SRSDashboard from '@/components/SRSDashboard';
 import Footer from '@/components/Footer';
-
+import AuthButton from '@/components/AuthButton';
 
 export default function Home() {
   const [text, setText] = useState('');
@@ -250,6 +250,7 @@ export default function Home() {
         >
           <History className="w-5 h-5" />
         </button>
+        <AuthButton />
         <ThemeToggle />
       </div>
 
