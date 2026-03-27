@@ -65,6 +65,31 @@ export async function updateStreak() {
     .eq('id', user.id)
 }
 
+export async function syncStreak(localStreak: number) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const profile = await getProfile()
+  if (!profile) return null
+
+  // If cloud streak is less than local, hoist the local streak
+  if (profile.streak < localStreak) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ streak: localStreak })
+      .eq('id', user.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error syncing streak:', error)
+      return null
+    }
+    return data as Profile
+  }
+  return profile
+}
+
 // --- Session Functions ---
 
 export async function fetchSessions() {

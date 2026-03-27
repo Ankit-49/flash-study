@@ -11,7 +11,7 @@ import SRSDashboard from '@/components/SRSDashboard';
 import Footer from '@/components/Footer';
 import AuthButton from '@/components/AuthButton';
 import { createClient } from '@/utils/supabase/client';
-import { getProfile, updateStreak, upsertSession } from '@/lib/db';
+import { getProfile, updateStreak, upsertSession, syncStreak } from '@/lib/db';
 import type { User } from '@supabase/supabase-js';
 
 export default function Home() {
@@ -67,7 +67,13 @@ export default function Home() {
   useEffect(() => {
     const initStreak = async () => {
       if (user) {
-        // Cloud Streak
+        // Hoist local streak to cloud if needed
+        const localStreak = localStorage.getItem('study_streak');
+        if (localStreak) {
+          await syncStreak(parseInt(localStreak));
+        }
+        
+        // Cloud Streak Update
         await updateStreak();
         const profile = await getProfile();
         if (profile) setStreak(profile.streak);
@@ -269,11 +275,20 @@ export default function Home() {
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 font-black text-sm shadow-sm"
-            title="Study Streak"
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-black text-sm shadow-sm border ${
+              user 
+                ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400" 
+                : "bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400"
+            }`}
+            title={user ? "Cloud-Synced Streak" : "Local Study Streak"}
           >
-            <Flame className="w-4 h-4 fill-current animate-pulse" />
+            <Flame className={`w-4 h-4 fill-current ${user ? "text-blue-500" : "animate-pulse"}`} />
             <span>{streak}</span>
+            {user && (
+               <div className="flex items-center ml-0.5" title="Synced with Account">
+                 <Check className="w-3 h-3 text-blue-500" />
+               </div>
+            )}
           </motion.div>
         ) : null}
         <button
