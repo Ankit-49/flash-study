@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Calendar, ChevronRight, X, Layers, Clock, CheckCircle, TrendingUp, Sparkles, Trophy } from 'lucide-react';
+import { Brain, Calendar, ChevronRight, X, Layers, Clock, CheckCircle, TrendingUp, Sparkles, Trophy, Loader2 } from 'lucide-react';
 import { StudyKitData } from './StudyKit';
+import { createClient } from '@/utils/supabase/client';
+import { fetchSessions } from '@/lib/db';
+import type { User } from '@supabase/supabase-js';
 import ExamSimulator from './ExamSimulator';
 
 interface HistoryItem {
@@ -24,56 +27,89 @@ export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboard
     const [dueItems, setDueItems] = useState<HistoryItem[]>([]);
     const [upcomingItems, setUpcomingItems] = useState<HistoryItem[]>([]);
     const [showSimulator, setShowSimulator] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(false);
+    const supabase = createClient();
+
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null);
+        });
+        return () => subscription.unsubscribe();
+    }, []);
 
     useEffect(() => {
         if (isOpen) {
             loadItems();
         }
-    }, [isOpen]);
+    }, [isOpen, user]);
 
-    const loadItems = () => {
-        const saved = localStorage.getItem('study_history');
-        if (saved) {
-            try {
-                const history: HistoryItem[] = JSON.parse(saved);
-                const now = Date.now();
+    const loadItems = async () => {
+        setLoading(true);
+        let history: HistoryItem[] = [];
 
-                const due: HistoryItem[] = [];
-                const upcoming: HistoryItem[] = [];
-
-                history.forEach(item => {
-                    const questions = item.data.quiz || [];
-                    if (questions.length === 0) return;
-
-                    // If any card hasn't been reviewed yet, or a reviewed card is due
-                    const hasAttentionRequired = questions.some(q => !q.lastReviewed || (q.nextReviewDate && q.nextReviewDate <= now));
-
-                    if (hasAttentionRequired) {
-                        due.push(item);
-                    } else {
-                        upcoming.push(item);
-                    }
-                });
-
-                // Sort due items by oldest review date (or oldest timestamp if new)
-                due.sort((a, b) => {
-                    const aDate = Math.min(...(a.data.quiz?.map(q => q.nextReviewDate || 0) || [0]));
-                    const bDate = Math.min(...(b.data.quiz?.map(q => q.nextReviewDate || 0) || [0]));
-                    return aDate - bDate;
-                });
-
-                upcoming.sort((a, b) => {
-                    const aDate = Math.min(...(a.data.quiz?.map(q => q.nextReviewDate || Infinity) || [Infinity]));
-                    const bDate = Math.min(...(b.data.quiz?.map(q => q.nextReviewDate || Infinity) || [Infinity]));
-                    return aDate - bDate;
-                });
-
-                setDueItems(due);
-                setUpcomingItems(upcoming);
-            } catch (e) {
-                console.error('Failed to parse history for SRS', e);
+        if (user) {
+            // Cloud History
+            const sessions = await fetchSessions();
+            history = sessions.map(s => ({
+                id: s.id,
+                timestamp: new Date(s.created_at).getTime(),
+                title: s.title,
+                data: s.data,
+                isPinned: s.is_pinned
+            }));
+        } else {
+            // Local History
+            const saved = localStorage.getItem('study_history');
+            if (saved) {
+                try {
+                    history = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to parse history for SRS', e);
+                }
             }
         }
+
+        if (history.length > 0) {
+            const now = Date.now();
+            const due: HistoryItem[] = [];
+            const upcoming: HistoryItem[] = [];
+
+            history.forEach(item => {
+                const questions = item.data.quiz || [];
+                if (questions.length === 0) return;
+
+                const hasAttentionRequired = questions.some(q => !q.lastReviewed || (q.nextReviewDate && q.nextReviewDate <= now));
+
+                if (hasAttentionRequired) {
+                    due.push(item);
+                } else {
+                    upcoming.push(item);
+                }
+            });
+
+            due.sort((a, b) => {
+                const aDate = Math.min(...(a.data.quiz?.map(q => q.nextReviewDate || 0) || [0]));
+                const bDate = Math.min(...(b.data.quiz?.map(q => q.nextReviewDate || 0) || [0]));
+                return aDate - bDate;
+            });
+
+            upcoming.sort((a, b) => {
+                const aDate = Math.min(...(a.data.quiz?.map(q => q.nextReviewDate || Infinity) || [Infinity]));
+                const bDate = Math.min(...(b.data.quiz?.map(q => q.nextReviewDate || Infinity) || [Infinity]));
+                return aDate - bDate;
+            });
+
+            setDueItems(due);
+            setUpcomingItems(upcoming);
+        } else {
+            setDueItems([]);
+            setUpcomingItems([]);
+        }
+        setLoading(false);
     };
 
     const getNextReviewTime = (item: HistoryItem) => {
@@ -100,23 +136,23 @@ export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboard
     };
 
     return (
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
             {isOpen && (
-                <div key="srs-dashboard-wrapper">
+                <div key="srs-dashboard-wrapper" className="fixed inset-0 z-[100] flex items-center justify-center">
                     <motion.div
                         key="srs-backdrop"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]"
+                        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
                     />
                     <motion.div
                         key="srs-dashboard-content"
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed inset-4 md:inset-10 bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden z-[110] flex flex-col border border-white/20 dark:border-slate-700"
+                        className="relative w-full max-w-6xl h-[90vh] bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border border-white/20 dark:border-slate-700 m-4"
                     >
 
                         {/* Header */}
@@ -133,7 +169,7 @@ export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboard
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => setShowSimulator(true)}
-                                    className="px-6 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all flex items-center gap-2"
+                                    className="px-6 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all flex items-center gap-2 text-center"
                                 >
                                     <Trophy className="w-4 h-4" />
                                     Exam Simulator
@@ -149,146 +185,154 @@ export default function SRSDashboard({ isOpen, onClose, onSelect }: SRSDashboard
 
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto p-8 space-y-12 bg-slate-50/50 dark:bg-slate-900/50">
-
-                            {/* Due Now Section */}
-                            <section>
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-xl">
-                                        <Layers className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                                        Review Due ({dueItems.length})
-                                    </h3>
+                            {loading ? (
+                                <div className="h-full flex flex-col items-center justify-center space-y-4">
+                                    <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                                    <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.2em]">Syncing Neural Data...</p>
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {dueItems.map(item => (
-                                        <motion.div
-                                            key={item.id}
-                                            whileHover={{ y: -5 }}
-                                            onClick={() => { onSelect(item.data); onClose(); }}
-                                            className="group bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-orange-200 dark:border-orange-900/30 shadow-lg hover:shadow-orange-500/10 cursor-pointer relative overflow-hidden"
-                                        >
-                                            <div className="absolute top-0 right-0 p-4">
-                                                <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse" />
+                            ) : (
+                                <>
+                                    {/* Due Now Section */}
+                                    <section>
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-xl">
+                                                <Layers className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                                             </div>
-                                            <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-2 line-clamp-2 pr-6">
-                                                {item.title}
-                                            </h4>
-                                            <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
-                                                <span className="flex items-center gap-1.5">
-                                                    <Layers className="w-4 h-4" />
-                                                    {item.data.quiz?.length || 0} cards
-                                                </span>
-                                                {(() => {
-                                                    const questions = item.data.quiz || [];
-                                                    const isNew = questions.every(q => !q.lastReviewed);
-                                                    const isDue = questions.some(q => q.nextReviewDate && q.nextReviewDate <= Date.now());
-                                                    const reviewedCount = questions.filter(q => q.lastReviewed).length;
+                                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+                                                Review Due ({dueItems.length})
+                                            </h3>
+                                        </div>
 
-                                                    if (isNew) return (
-                                                        <span className="flex items-center gap-1.5 text-blue-500 font-bold">
-                                                            <Sparkles className="w-4 h-4" />
-                                                            Get Started
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {dueItems.map(item => (
+                                                <motion.div
+                                                    key={item.id}
+                                                    whileHover={{ y: -5 }}
+                                                    onClick={() => { onSelect(item.data); onClose(); }}
+                                                    className="group bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-orange-200 dark:border-orange-900/30 shadow-lg hover:shadow-orange-500/10 cursor-pointer relative overflow-hidden"
+                                                >
+                                                    <div className="absolute top-0 right-0 p-4">
+                                                        <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse" />
+                                                    </div>
+                                                    <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-2 line-clamp-2 pr-6">
+                                                        {item.title}
+                                                    </h4>
+                                                    <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Layers className="w-4 h-4" />
+                                                            {item.data.quiz?.length || 0} cards
                                                         </span>
-                                                    );
-                                                    if (isDue) return (
-                                                        <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400 font-bold">
+                                                        {(() => {
+                                                            const questions = item.data.quiz || [];
+                                                            const isNew = questions.every(q => !q.lastReviewed);
+                                                            const isDue = questions.some(q => q.nextReviewDate && q.nextReviewDate <= Date.now());
+                                                            const reviewedCount = questions.filter(q => q.lastReviewed).length;
+
+                                                            if (isNew) return (
+                                                                <span className="flex items-center gap-1.5 text-blue-500 font-bold">
+                                                                    <Sparkles className="w-4 h-4" />
+                                                                    Get Started
+                                                                </span>
+                                                            );
+                                                            if (isDue) return (
+                                                                <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400 font-bold">
+                                                                    <Clock className="w-4 h-4" />
+                                                                    Review Due
+                                                                </span>
+                                                            );
+                                                            return (
+                                                                <span className="flex items-center gap-1.5 text-green-500 font-bold">
+                                                                    <CheckCircle className="w-4 h-4" />
+                                                                    {reviewedCount}/{questions.length} Ready
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Mastery</span>
+                                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                                {getMasteryLevel(item)}%
+                                                            </span>
+                                                        </div>
+                                                        <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-all text-orange-600 dark:text-orange-400">
+                                                            <ChevronRight className="w-5 h-5" />
+                                                        </div>
+                                                    </div>
+                                                    {/* Progress Bar */}
+                                                    <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-100 dark:bg-slate-700">
+                                                        <div
+                                                            className="h-full bg-orange-500"
+                                                            style={{ width: `${getMasteryLevel(item)}%` }}
+                                                        />
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                            {dueItems.length === 0 && (
+                                                <div className="col-span-full py-12 text-center text-slate-400 bg-white/50 dark:bg-slate-900/50 rounded-[2rem] border border-dashed border-slate-300 dark:border-slate-700">
+                                                    <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
+                                                    <p className="font-medium">All caught up! Great job.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </section>
+
+                                    {/* Upcoming Section */}
+                                    <section>
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
+                                                <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+                                                Upcoming Reviews ({upcomingItems.length})
+                                            </h3>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {upcomingItems.map(item => (
+                                                <motion.div
+                                                    key={item.id}
+                                                    whileHover={{ y: -5 }}
+                                                    onClick={() => { onSelect(item.data); onClose(); }}
+                                                    className="group bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md cursor-pointer relative overflow-hidden opacity-80 hover:opacity-100 transition-opacity"
+                                                >
+                                                    <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-2 line-clamp-2">
+                                                        {item.title}
+                                                    </h4>
+                                                    <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
+                                                        <span className="flex items-center gap-1.5">
                                                             <Clock className="w-4 h-4" />
-                                                            Review Due
+                                                            {getNextReviewTime(item)}
                                                         </span>
-                                                    );
-                                                    return (
-                                                        <span className="flex items-center gap-1.5 text-green-500 font-bold">
-                                                            <CheckCircle className="w-4 h-4" />
-                                                            {reviewedCount}/{questions.length} Ready
-                                                        </span>
-                                                    );
-                                                })()}
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Mastery</span>
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                                        {getMasteryLevel(item)}%
-                                                    </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Mastery</span>
+                                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                                {getMasteryLevel(item)}%
+                                                            </span>
+                                                        </div>
+                                                        <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all text-slate-400">
+                                                            <TrendingUp className="w-4 h-4" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-100 dark:bg-slate-700">
+                                                        <div
+                                                            className="h-full bg-blue-500"
+                                                            style={{ width: `${getMasteryLevel(item)}%` }}
+                                                        />
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                            {upcomingItems.length === 0 && dueItems.length === 0 && (
+                                                <div className="col-span-full py-12 text-center text-slate-400">
+                                                    <p>No study history found. Generate a kit to start tracking!</p>
                                                 </div>
-                                                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-all text-orange-600 dark:text-orange-400">
-                                                    <ChevronRight className="w-5 h-5" />
-                                                </div>
-                                            </div>
-                                            {/* Progress Bar */}
-                                            <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-100 dark:bg-slate-700">
-                                                <div
-                                                    className="h-full bg-orange-500"
-                                                    style={{ width: `${getMasteryLevel(item)}%` }}
-                                                />
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                    {dueItems.length === 0 && (
-                                        <div className="col-span-full py-12 text-center text-slate-400 bg-white/50 dark:bg-slate-900/50 rounded-[2rem] border border-dashed border-slate-300 dark:border-slate-700">
-                                            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
-                                            <p className="font-medium">All caught up! Great job.</p>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            </section>
-
-                            {/* Upcoming Section */}
-                            <section>
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
-                                        <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                                        Upcoming Reviews ({upcomingItems.length})
-                                    </h3>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {upcomingItems.map(item => (
-                                        <motion.div
-                                            key={item.id}
-                                            whileHover={{ y: -5 }}
-                                            onClick={() => { onSelect(item.data); onClose(); }}
-                                            className="group bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md cursor-pointer relative overflow-hidden opacity-80 hover:opacity-100 transition-opacity"
-                                        >
-                                            <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-2 line-clamp-2">
-                                                {item.title}
-                                            </h4>
-                                            <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
-                                                <span className="flex items-center gap-1.5">
-                                                    <Clock className="w-4 h-4" />
-                                                    {getNextReviewTime(item)}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Mastery</span>
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                                        {getMasteryLevel(item)}%
-                                                    </span>
-                                                </div>
-                                                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all text-slate-400">
-                                                    <TrendingUp className="w-4 h-4" />
-                                                </div>
-                                            </div>
-                                            <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-100 dark:bg-slate-700">
-                                                <div
-                                                    className="h-full bg-blue-500"
-                                                    style={{ width: `${getMasteryLevel(item)}%` }}
-                                                />
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                    {upcomingItems.length === 0 && dueItems.length === 0 && (
-                                        <div className="col-span-full py-12 text-center text-slate-400">
-                                            <p>No study history found. Generate a kit to start tracking!</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </section>
+                                    </section>
+                                </>
+                            )}
                         </div>
                     </motion.div>
                 </div>

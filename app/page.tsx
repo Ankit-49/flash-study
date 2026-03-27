@@ -10,8 +10,12 @@ import HistorySidebar from '@/components/HistorySidebar';
 import SRSDashboard from '@/components/SRSDashboard';
 import Footer from '@/components/Footer';
 import AuthButton from '@/components/AuthButton';
+import { createClient } from '@/utils/supabase/client';
+import { getProfile, updateStreak, upsertSession } from '@/lib/db';
+import type { User } from '@supabase/supabase-js';
 
 export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,6 +28,20 @@ export default function Home() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [streak, setStreak] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const loadingSteps = [
     "Analyzing your materials...",
@@ -47,29 +65,40 @@ export default function Home() {
   }, [loading]);
 
   useEffect(() => {
-    // Streak Logic
-    const lastActive = localStorage.getItem('study_last_active');
-    const savedStreak = localStorage.getItem('study_streak');
-    const today = new Date().toDateString();
-
-    if (lastActive === today) {
-      setStreak(savedStreak ? parseInt(savedStreak) : 1);
-    } else {
-      const lastDate = lastActive ? new Date(lastActive) : null;
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      if (lastDate && lastDate.toDateString() === yesterday.toDateString()) {
-        const newStreak = (savedStreak ? parseInt(savedStreak) : 0) + 1;
-        setStreak(newStreak);
-        localStorage.setItem('study_streak', newStreak.toString());
+    const initStreak = async () => {
+      if (user) {
+        // Cloud Streak
+        await updateStreak();
+        const profile = await getProfile();
+        if (profile) setStreak(profile.streak);
       } else {
-        setStreak(1);
-        localStorage.setItem('study_streak', '1');
+        // Local Streak Fallback
+        const lastActive = localStorage.getItem('study_last_active');
+        const savedStreak = localStorage.getItem('study_streak');
+        const today = new Date().toDateString();
+
+        if (lastActive === today) {
+          setStreak(savedStreak ? parseInt(savedStreak) : 1);
+        } else {
+          const lastDate = lastActive ? new Date(lastActive) : null;
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+
+          if (lastDate && lastDate.toDateString() === yesterday.toDateString()) {
+            const newStreak = (savedStreak ? parseInt(savedStreak) : 0) + 1;
+            setStreak(newStreak);
+            localStorage.setItem('study_streak', newStreak.toString());
+          } else {
+            setStreak(1);
+            localStorage.setItem('study_streak', '1');
+          }
+          localStorage.setItem('study_last_active', today);
+        }
       }
-      localStorage.setItem('study_last_active', today);
-    }
-  }, []);
+    };
+
+    initStreak();
+  }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -177,39 +206,53 @@ export default function Home() {
     }
   };
 
-  const saveToHistory = (data: StudyKitData) => {
-    const saved = localStorage.getItem('study_history');
-    const history = saved ? JSON.parse(saved) : [];
+  const saveToHistory = async (data: StudyKitData) => {
     const id = Date.now().toString();
-
-    // Assign ID to data for tracking
     const dataWithId = { ...data, id };
+    const title = data.summary.substring(0, 40) + "...";
 
-    const newItem = {
-      id,
-      timestamp: Date.now(),
-      title: data.summary.substring(0, 40) + "...",
-      data: dataWithId
-    };
-
-    // Update result with ID so subsequent updates work
-    setResult(dataWithId);
-
-    localStorage.setItem('study_history', JSON.stringify([newItem, ...history].slice(0, 20)));
+    if (user) {
+      // Save to Cloud
+      const session = await upsertSession({
+        title,
+        data: dataWithId
+      });
+      if (session) {
+        setResult({ ...dataWithId, id: session.id });
+      }
+    } else {
+      // Save to Local
+      const saved = localStorage.getItem('study_history');
+      const history = saved ? JSON.parse(saved) : [];
+      const newItem = {
+        id,
+        timestamp: Date.now(),
+        title,
+        data: dataWithId
+      };
+      setResult(dataWithId);
+      localStorage.setItem('study_history', JSON.stringify([newItem, ...history].slice(0, 20)));
+    }
   };
 
-  const handleUpdateKit = (updatedData: StudyKitData) => {
+  const handleUpdateKit = async (updatedData: StudyKitData) => {
     setResult(updatedData);
 
-    const saved = localStorage.getItem('study_history');
-    if (saved) {
-      const history = JSON.parse(saved);
-      if (updatedData.id) {
+    if (user && updatedData.id) {
+      // Update Cloud
+      await upsertSession({
+        id: updatedData.id,
+        title: updatedData.summary.substring(0, 40) + "...",
+        data: updatedData
+      });
+    } else if (updatedData.id) {
+      // Update Local
+      const saved = localStorage.getItem('study_history');
+      if (saved) {
+        const history = JSON.parse(saved);
         const index = history.findIndex((h: any) => h.id === updatedData.id);
         if (index !== -1) {
           history[index].data = updatedData;
-          // Don't update timestamp here to avoid reordering unless we want to "bump" it
-          // history[index].timestamp = Date.now(); 
           localStorage.setItem('study_history', JSON.stringify(history));
         }
       }

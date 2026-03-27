@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, X, Trash2, Calendar, ChevronRight, Bookmark, Pin, Edit2, Check, Search, AlertTriangle, Sparkles, Trophy } from 'lucide-react';
+import { History, X, Trash2, Calendar, ChevronRight, Bookmark, Pin, Edit2, Check, Search, AlertTriangle, Sparkles, Trophy, Loader2 } from 'lucide-react';
 import { StudyKitData } from './StudyKit';
+import { createClient } from '@/utils/supabase/client';
+import { fetchSessions, deleteSession, togglePinSession, upsertSession, StudySession } from '@/lib/db';
+import type { User } from '@supabase/supabase-js';
 
 interface HistoryItem {
     id: string;
@@ -25,47 +28,104 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
     const [editValue, setEditValue] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(false);
+    const supabase = createClient();
 
     useEffect(() => {
-        if (isOpen) {
-            const saved = localStorage.getItem('study_history');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    const sorted = parsed.sort((a: HistoryItem, b: HistoryItem) => {
-                        if (a.isPinned && !b.isPinned) return -1;
-                        if (!a.isPinned && b.isPinned) return 1;
-                        return b.timestamp - a.timestamp;
-                    });
-                    setHistory(sorted);
-                } catch (e) {
-                    console.error('Failed to parse history', e);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null);
+        });
+        return () => subscription.unsubscribe();
+    }, []);
+
+    useEffect(() => {
+        const loadHistory = async () => {
+            setLoading(true);
+            if (user) {
+                // Cloud History
+                const sessions = await fetchSessions();
+                setHistory(sessions.map(s => ({
+                    id: s.id,
+                    timestamp: new Date(s.created_at).getTime(),
+                    title: s.title,
+                    data: s.data,
+                    isPinned: s.is_pinned
+                })));
+            } else {
+                // Local History
+                const saved = localStorage.getItem('study_history');
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        const sorted = parsed.sort((a: HistoryItem, b: HistoryItem) => {
+                            if (a.isPinned && !b.isPinned) return -1;
+                            if (!a.isPinned && b.isPinned) return 1;
+                            return b.timestamp - a.timestamp;
+                        });
+                        setHistory(sorted);
+                    } catch (e) {
+                        console.error('Failed to parse history', e);
+                    }
+                } else {
+                    setHistory([]);
                 }
             }
+            setLoading(false);
+        };
+
+        if (isOpen) {
+            loadHistory();
         }
-    }, [isOpen]);
+    }, [isOpen, user]);
 
     const saveHistory = (items: HistoryItem[]) => {
         setHistory(items);
         localStorage.setItem('study_history', JSON.stringify(items));
     };
 
-    const deleteItem = (id: string, e: React.MouseEvent) => {
+    const deleteItem = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        const updated = history.filter(item => item.id !== id);
-        saveHistory(updated);
+        if (user) {
+            const success = await deleteSession(id);
+            if (success) {
+                setHistory(prev => prev.filter(item => item.id !== id));
+            }
+        } else {
+            const updated = history.filter(item => item.id !== id);
+            saveHistory(updated);
+        }
     };
 
-    const togglePin = (id: string, e: React.MouseEvent) => {
+    const togglePin = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        const updated = history.map(item =>
-            item.id === id ? { ...item, isPinned: !item.isPinned } : item
-        ).sort((a, b) => {
-            if (a.isPinned && !b.isPinned) return -1;
-            if (!a.isPinned && b.isPinned) return 1;
-            return b.timestamp - a.timestamp;
-        });
-        saveHistory(updated);
+        const item = history.find(h => h.id === id);
+        if (!item) return;
+
+        const newPinned = !item.isPinned;
+
+        if (user) {
+            const success = await togglePinSession(id, newPinned);
+            if (success) {
+                setHistory(prev => prev.map(h => h.id === id ? { ...h, isPinned: newPinned } : h).sort((a, b) => {
+                    if (a.isPinned && !b.isPinned) return -1;
+                    if (!a.isPinned && b.isPinned) return 1;
+                    return b.timestamp - a.timestamp;
+                }));
+            }
+        } else {
+            const updated = history.map(item =>
+                item.id === id ? { ...item, isPinned: !item.isPinned } : item
+            ).sort((a, b) => {
+                if (a.isPinned && !b.isPinned) return -1;
+                if (!a.isPinned && b.isPinned) return 1;
+                return b.timestamp - a.timestamp;
+            });
+            saveHistory(updated);
+        }
     };
 
     const startRename = (item: HistoryItem, e: React.MouseEvent) => {
@@ -74,11 +134,23 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
         setEditValue(item.title);
     };
 
-    const handleRename = (id: string) => {
-        const updated = history.map(item =>
-            item.id === id ? { ...item, title: editValue } : item
-        );
-        saveHistory(updated);
+    const handleRename = async (id: string) => {
+        if (user) {
+            const item = history.find(h => h.id === id);
+            if (item) {
+                await upsertSession({
+                    id,
+                    title: editValue,
+                    data: item.data
+                });
+                setHistory(prev => prev.map(h => h.id === id ? { ...h, title: editValue } : h));
+            }
+        } else {
+            const updated = history.map(item =>
+                item.id === id ? { ...item, title: editValue } : item
+            );
+            saveHistory(updated);
+        }
         setEditingId(null);
     };
 
@@ -137,7 +209,12 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                            {filteredHistory.length === 0 ? (
+                            {loading ? (
+                                <div className="h-full flex flex-col items-center justify-center space-y-3">
+                                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                                    <p className="text-sm text-slate-500 font-medium uppercase tracking-widest">Syncing Cloud...</p>
+                                </div>
+                            ) : filteredHistory.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
                                     <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
                                         <Bookmark className="w-6 h-6 text-slate-300" />
@@ -254,7 +331,9 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
                                 </div>
                             )}
                             <div className="text-center">
-                                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">Saved locally on your device</p>
+                                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
+                                    {user ? 'Synchronized with Cloud' : 'Saved locally on your device'}
+                                </p>
                             </div>
                         </div>
                     </motion.div>
