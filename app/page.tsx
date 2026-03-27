@@ -523,6 +523,29 @@ export default function Home() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="mt-12"
               >
+                {!user && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-8 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-between gap-4 backdrop-blur-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-orange-500 rounded-xl shadow-lg shadow-orange-500/20">
+                        <Flame className="w-5 h-5 text-white animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Guest Session</p>
+                        <p className="text-xs text-slate-500 font-medium">Your progress is temporary. Sign in to sync this kit and your SRS data to the cloud.</p>
+                      </div>
+                    </div>
+                    <a 
+                      href="/login" 
+                      className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] hover:scale-105 transition-all shadow-xl shadow-black/10 flex-shrink-0"
+                    >
+                      Secure My Progress
+                    </a>
+                  </motion.div>
+                )}
                 <StudyKit data={result} context={context} onExplore={handleDeepDive} onUpdate={handleUpdateKit} />
               </motion.div>
             )}

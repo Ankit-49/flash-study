@@ -330,7 +330,25 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
                                     )}
                                 </div>
                             )}
-                            <div className="text-center">
+                            {!user && (
+                                <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <Sparkles className="w-4 h-4 text-primary" />
+                                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Upgrade to Cloud</p>
+                                    </div>
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                        Sync your history across all devices and never lose a study kit.
+                                    </p>
+                                    <a 
+                                      href="/login"
+                                      className="block w-full py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all text-center"
+                                    >
+                                        Create Account
+                                    </a>
+                                </div>
+                            )}
+
+                            <div className="text-center pt-2">
                                 <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
                                     {user ? 'Synchronized with Cloud' : 'Saved locally on your device'}
                                 </p>
