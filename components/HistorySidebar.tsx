@@ -222,7 +222,7 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
                                     <p className="text-sm text-slate-500 font-medium">No saved sessions yet</p>
                                 </div>
                             ) : (
-                                history.map((item) => (
+                                filteredHistory.map((item) => (
                                     <motion.div
                                         key={item.id}
                                         layout
@@ -330,6 +330,7 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
                                     )}
                                 </div>
                             )}
+
                             {!user && (
                                 <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 space-y-3">
                                     <div className="flex items-center gap-2">
@@ -349,9 +350,19 @@ export default function HistorySidebar({ isOpen, onClose, onSelect }: HistorySid
                             )}
 
                             <div className="text-center pt-2">
-                                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
+                                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mb-1">
                                     {user ? 'Synchronized with Cloud' : 'Saved locally on your device'}
                                 </p>
+                                <div className="flex items-center justify-center gap-1.5 opacity-50">
+                                    <div className="w-1 h-1 bg-green-500 rounded-full" />
+                                    <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.2em] flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                            <path d="M7 11V7a5 5 0 0110 0v4"/>
+                                        </svg>
+                                        Secured with RLS & Encryption
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
