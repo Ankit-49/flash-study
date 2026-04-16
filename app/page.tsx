@@ -9,9 +9,13 @@ import ThemeToggle from '@/components/ThemeToggle';
 import HistorySidebar from '@/components/HistorySidebar';
 import SRSDashboard from '@/components/SRSDashboard';
 import Footer from '@/components/Footer';
-
+import AuthButton from '@/components/AuthButton';
+import { createClient } from '@/utils/supabase/client';
+import { getProfile, updateStreak, upsertSession, syncStreak } from '@/lib/db';
+import type { User } from '@supabase/supabase-js';
 
 export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,6 +28,20 @@ export default function Home() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [streak, setStreak] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const loadingSteps = [
     "Analyzing your materials...",
@@ -47,29 +65,46 @@ export default function Home() {
   }, [loading]);
 
   useEffect(() => {
-    // Streak Logic
-    const lastActive = localStorage.getItem('study_last_active');
-    const savedStreak = localStorage.getItem('study_streak');
-    const today = new Date().toDateString();
-
-    if (lastActive === today) {
-      setStreak(savedStreak ? parseInt(savedStreak) : 1);
-    } else {
-      const lastDate = lastActive ? new Date(lastActive) : null;
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      if (lastDate && lastDate.toDateString() === yesterday.toDateString()) {
-        const newStreak = (savedStreak ? parseInt(savedStreak) : 0) + 1;
-        setStreak(newStreak);
-        localStorage.setItem('study_streak', newStreak.toString());
+    const initStreak = async () => {
+      if (user) {
+        // Hoist local streak to cloud if needed
+        const localStreak = localStorage.getItem('study_streak');
+        if (localStreak) {
+          await syncStreak(parseInt(localStreak));
+        }
+        
+        // Cloud Streak Update
+        await updateStreak();
+        const profile = await getProfile();
+        if (profile) setStreak(profile.streak);
       } else {
-        setStreak(1);
-        localStorage.setItem('study_streak', '1');
+        // Local Streak Fallback
+        const lastActive = localStorage.getItem('study_last_active');
+        const savedStreak = localStorage.getItem('study_streak');
+        const today = new Date().toDateString();
+
+        if (lastActive === today) {
+          setStreak(savedStreak ? parseInt(savedStreak) : 1);
+        } else {
+          const lastDate = lastActive ? new Date(lastActive) : null;
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+
+          if (lastDate && lastDate.toDateString() === yesterday.toDateString()) {
+            const newStreak = (savedStreak ? parseInt(savedStreak) : 0) + 1;
+            setStreak(newStreak);
+            localStorage.setItem('study_streak', newStreak.toString());
+          } else {
+            setStreak(1);
+            localStorage.setItem('study_streak', '1');
+          }
+          localStorage.setItem('study_last_active', today);
+        }
       }
-      localStorage.setItem('study_last_active', today);
-    }
-  }, []);
+    };
+
+    initStreak();
+  }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -177,39 +212,53 @@ export default function Home() {
     }
   };
 
-  const saveToHistory = (data: StudyKitData) => {
-    const saved = localStorage.getItem('study_history');
-    const history = saved ? JSON.parse(saved) : [];
+  const saveToHistory = async (data: StudyKitData) => {
     const id = Date.now().toString();
-
-    // Assign ID to data for tracking
     const dataWithId = { ...data, id };
+    const title = data.summary.substring(0, 40) + "...";
 
-    const newItem = {
-      id,
-      timestamp: Date.now(),
-      title: data.summary.substring(0, 40) + "...",
-      data: dataWithId
-    };
-
-    // Update result with ID so subsequent updates work
-    setResult(dataWithId);
-
-    localStorage.setItem('study_history', JSON.stringify([newItem, ...history].slice(0, 20)));
+    if (user) {
+      // Save to Cloud
+      const session = await upsertSession({
+        title,
+        data: dataWithId
+      });
+      if (session) {
+        setResult({ ...dataWithId, id: session.id });
+      }
+    } else {
+      // Save to Local
+      const saved = localStorage.getItem('study_history');
+      const history = saved ? JSON.parse(saved) : [];
+      const newItem = {
+        id,
+        timestamp: Date.now(),
+        title,
+        data: dataWithId
+      };
+      setResult(dataWithId);
+      localStorage.setItem('study_history', JSON.stringify([newItem, ...history].slice(0, 20)));
+    }
   };
 
-  const handleUpdateKit = (updatedData: StudyKitData) => {
+  const handleUpdateKit = async (updatedData: StudyKitData) => {
     setResult(updatedData);
 
-    const saved = localStorage.getItem('study_history');
-    if (saved) {
-      const history = JSON.parse(saved);
-      if (updatedData.id) {
+    if (user && updatedData.id) {
+      // Update Cloud
+      await upsertSession({
+        id: updatedData.id,
+        title: updatedData.summary.substring(0, 40) + "...",
+        data: updatedData
+      });
+    } else if (updatedData.id) {
+      // Update Local
+      const saved = localStorage.getItem('study_history');
+      if (saved) {
+        const history = JSON.parse(saved);
         const index = history.findIndex((h: any) => h.id === updatedData.id);
         if (index !== -1) {
           history[index].data = updatedData;
-          // Don't update timestamp here to avoid reordering unless we want to "bump" it
-          // history[index].timestamp = Date.now(); 
           localStorage.setItem('study_history', JSON.stringify(history));
         }
       }
@@ -226,11 +275,20 @@ export default function Home() {
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 font-black text-sm shadow-sm"
-            title="Study Streak"
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-black text-sm shadow-sm border ${
+              user 
+                ? "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400" 
+                : "bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400"
+            }`}
+            title={user ? "Cloud-Synced Streak" : "Local Study Streak"}
           >
-            <Flame className="w-4 h-4 fill-current animate-pulse" />
+            <Flame className={`w-4 h-4 fill-current ${user ? "text-blue-500" : "animate-pulse"}`} />
             <span>{streak}</span>
+            {user && (
+               <div className="flex items-center ml-0.5" title="Synced with Account">
+                 <Check className="w-3 h-3 text-blue-500" />
+               </div>
+            )}
           </motion.div>
         ) : null}
         <button
@@ -250,6 +308,7 @@ export default function Home() {
         >
           <History className="w-5 h-5" />
         </button>
+        <AuthButton />
         <ThemeToggle />
       </div>
 
@@ -464,6 +523,29 @@ export default function Home() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="mt-12"
               >
+                {!user && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-8 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-between gap-4 backdrop-blur-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-orange-500 rounded-xl shadow-lg shadow-orange-500/20">
+                        <Flame className="w-5 h-5 text-white animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Guest Session</p>
+                        <p className="text-xs text-slate-500 font-medium">Your progress is temporary. Sign in to sync this kit and your SRS data to the cloud.</p>
+                      </div>
+                    </div>
+                    <a 
+                      href="/login" 
+                      className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] hover:scale-105 transition-all shadow-xl shadow-black/10 flex-shrink-0"
+                    >
+                      Secure My Progress
+                    </a>
+                  </motion.div>
+                )}
                 <StudyKit data={result} context={context} onExplore={handleDeepDive} onUpdate={handleUpdateKit} />
               </motion.div>
             )}
