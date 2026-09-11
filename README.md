@@ -28,7 +28,7 @@ Need clarification? Chat with our integrated AI assistant that has the context o
 
 ## 🛠️ Tech Stack
 
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
 - **Library**: [React 19](https://react.dev/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
@@ -47,7 +47,7 @@ Need clarification? Chat with our integrated AI assistant that has the context o
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/Smudge049/flash-study.git
+   git clone https://github.com/Ankit-49/flash-study.git
    cd flash-study
    ```
 
@@ -70,6 +70,13 @@ Need clarification? Chat with our integrated AI assistant that has the context o
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Available Scripts
+
+- `npm run dev` — Start the development server
+- `npm run build` — Build the app for production
+- `npm run start` — Start the production server
+- `npm run lint` — Run ESLint checks
+
 ---
 
 ## 🤝 Contributing
@@ -83,5 +90,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  Built with ❤️ by <a href="https://github.com/Smudge049">Ankit Sapkota</a>
+  Built with ❤️ by <a href="https://github.com/Ankit-49">Ankit Sapkota</a>
 </div>
